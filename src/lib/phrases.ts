@@ -1,4 +1,6 @@
 import type { TopicId } from "./topics";
+import type { Difficulty } from "./topics";
+import { approximateIpa } from "./assessment";
 
 export interface Phrase {
   id: string;
@@ -6,6 +8,7 @@ export interface Phrase {
   text: string;
   /** IPA, one space-separated token per word in `text`. */
   ipa: string;
+  difficulty: Difficulty;
 }
 
 type Seed = [text: string, ipa: string];
@@ -67,8 +70,25 @@ const sounds: Seed[] = [
   ["Vanessa wears velvet on Wednesdays.", "vəˈnɛsə wɛrz ˈvɛlvət ɑn ˈwɛnzdeɪz"],
 ];
 
-function build(topic: TopicId, seeds: Seed[]): Phrase[] {
-  return seeds.map(([text, ipa], i) => ({ id: `${topic}-${i + 1}`, topic, text, ipa }));
+function build(topic: TopicId, seeds: Seed[], difficulty: Difficulty = "Beginner"): Phrase[] {
+  return seeds.map(([text, ipa], i) => ({ id: difficulty === "Beginner" ? `${topic}-${i + 1}` : `${topic}-${difficulty.toLowerCase()}-${i + 1}`, topic, text, ipa, difficulty }));
+}
+
+// Tiered curriculum keeps learners progressing beyond the introductory seed set.
+const intermediate: Record<TopicId, string[]> = {
+  travel: ["Although our connecting flight was delayed, the airline arranged overnight accommodation.", "Could you recommend a neighborhood with reliable public transportation?", "I need to change my reservation because my itinerary has shifted.", "The customs officer asked whether I had anything to declare.", "Would it be possible to store our luggage until the room is ready?", "We missed the transfer, so we are looking for an alternative route.", "Please confirm whether the fare includes checked baggage.", "The weather may affect our departure time, so check the airline updates."],
+  interview: ["I coordinated a cross-functional project that reduced onboarding time by twenty percent.", "When priorities changed, I clarified expectations and reorganized the team's workload.", "One challenge I faced was translating technical requirements for nontechnical partners.", "I would describe my management style as collaborative, with clear accountability.", "Could you explain how success is measured during the first six months?", "I learned to treat constructive feedback as a practical tool for improvement.", "My experience aligns with this role because I have led similar initiatives.", "I am interested in the position because it combines research and customer impact."],
+  smalltalk: ["I have been trying to spend more time outdoors whenever the weather cooperates.", "What initially drew you to this neighborhood, and has it changed over time?", "I recently started learning to cook dishes from a region I visited last year.", "That sounds fascinating; what was the most unexpected part of the experience?", "I usually prefer smaller gatherings where everyone has time to talk.", "Have you read anything recently that you would recommend to a friend?", "It was a pleasure catching up, and I hope we can do this again soon.", "I have been balancing a busy schedule with a few new personal projects."],
+  sounds: ["Those three thoughtful authors thoroughly revised their introductions.", "Rural libraries rarely receive regular deliveries during severe weather.", "The valuable review revealed several very avoidable errors.", "She usually measures the azure fabric before choosing a design.", "We discussed whether the sixth version was genuinely worthwhile.", "The visiting physician emphasized consistent breathing and hydration.", "Lily's early research influenced the direction of our proposal.", "Their shared vision gradually developed into a practical solution."],
+};
+const advanced: Record<TopicId, string[]> = {
+  travel: ["Given the rail disruption, we would appreciate guidance on the most dependable onward connection.", "If the reservation cannot be amended, could you outline the cancellation terms and applicable fees?", "Despite the conflicting announcements, the station staff eventually clarified our platform assignment.", "We have a tight connection, so please let us know whether our checked bags will be transferred automatically.", "Could you arrange an accessible vehicle and confirm the pickup point outside the arrivals terminal?", "Had we known about the engineering work, we would have booked a different route.", "The hotel acknowledged the overbooking and offered to cover transportation to a nearby property.", "Before we proceed, I would like to verify the exchange rate and any additional transaction charges."],
+  interview: ["I establish measurable milestones early, then revisit them as new evidence changes the project's scope.", "Rather than optimize a single metric, I worked with stakeholders to understand the underlying customer problem.", "The decision was unpopular initially, but transparent communication helped the team understand its rationale.", "I would approach the first ninety days by listening carefully, mapping dependencies, and identifying quick wins.", "When an experiment failed, we documented the assumptions and used the results to refine our next iteration.", "I am comfortable presenting uncertainty honestly while still recommending a clear course of action.", "The most consequential improvement came from automating a repetitive process without sacrificing quality.", "How does the organization balance long-term strategy with rapidly changing customer needs?"],
+  smalltalk: ["I appreciate how the city preserves its historic character while continuing to welcome new communities.", "The conversation reminded me that people can interpret the same experience in remarkably different ways.", "I had assumed the exhibit would be formal, but the interactive presentation made it unexpectedly engaging.", "Although I rarely follow celebrity news, I enjoy hearing how creative projects come together behind the scenes.", "It is interesting how a small change in routine can influence the way you experience an entire week.", "I agree with part of your point, though I wonder whether the broader context changes the conclusion.", "We should compare notes after the event; I suspect we noticed different details.", "What has been the most rewarding thing you have learned since moving here?"],
+  sounds: ["The researchers distinguished the theoretical framework from the evidence gathered in the field.", "Though the initial figures were encouraging, the longitudinal analysis revealed substantial variation.", "Rarely have we encountered such a thorough explanation of the underlying methodology.", "The seventh proposal thoughtfully addresses both accessibility and environmental sustainability.", "Their interpretation was plausible, yet the available measurements did not conclusively support it.", "Regular rehearsal improves rhythm, but deliberate pauses make complex ideas easier to understand.", "The revised resolution acknowledges the risk without overstating what the results demonstrate.", "Throughout the discussion, she articulated a nuanced view of cultural and professional identity."],
+};
+function generated(topic: TopicId, lines: string[], difficulty: Difficulty): Phrase[] {
+  return lines.map((text, i) => ({ id: `${topic}-${difficulty.toLowerCase()}-${i + 1}`, topic, text, ipa: text.split(/\s+/).map((word) => approximateIpa(word)).join(" "), difficulty }));
 }
 
 export const PHRASES: Phrase[] = [
@@ -76,6 +96,8 @@ export const PHRASES: Phrase[] = [
   ...build("interview", interview),
   ...build("smalltalk", smalltalk),
   ...build("sounds", sounds),
+  ...Object.entries(intermediate).flatMap(([topic, lines]) => generated(topic as TopicId, lines, "Intermediate")),
+  ...Object.entries(advanced).flatMap(([topic, lines]) => generated(topic as TopicId, lines, "Advanced")),
 ];
 
 export const PHRASE_BY_ID: Record<string, Phrase> = Object.fromEntries(

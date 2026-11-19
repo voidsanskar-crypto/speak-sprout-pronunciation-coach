@@ -159,6 +159,12 @@ function Home() {
               <Sparkles /> Your own text
             </Link>
           </Button>
+          <Button asChild variant="chip" size="pill">
+            <Link to="/skills">Skills</Link>
+          </Button>
+          <Button asChild variant="chip" size="pill">
+            <Link to="/dictionary">Dictionary</Link>
+          </Button>
         </div>
       </section>
 

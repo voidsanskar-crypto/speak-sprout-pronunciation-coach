@@ -3,6 +3,7 @@ import { DAILY_GOAL, MASTERED_SCORE, type ProgressState } from "./progress";
 import { detectSounds, type SoundId } from "./sounds";
 import type { TopicId } from "./topics";
 import { loadAssessment } from "./assessment";
+import type { Difficulty } from "./topics";
 
 function shuffle<T>(arr: T[], rand: () => number): T[] {
   const a = [...arr];
@@ -31,6 +32,16 @@ export function buildQueue(
     ),
     ...shuffle(list.filter(isMastered), rand),
   ];
+  const recentScores = state.attempts.slice(-12).map((a) => a.score);
+  const recentAverage = recentScores.length ? recentScores.reduce((a, b) => a + b, 0) / recentScores.length : null;
+  const levels: Difficulty[] = ["Beginner", "Intermediate", "Advanced"];
+  const assessed = loadAssessment()?.level ?? "Beginner";
+  let levelIndex = levels.indexOf(assessed);
+  // Performance steadily unlocks harder material, and persistent difficulty brings in review.
+  if (recentAverage !== null && recentScores.length >= 5) {
+    if (recentAverage >= 86) levelIndex = Math.min(2, levelIndex + 1);
+    else if (recentAverage < 52) levelIndex = Math.max(0, levelIndex - 1);
+  }
   if (opts.sound) {
     // Put phrases that use the sound most often first.
     const count = (p: Phrase) =>
@@ -39,8 +50,9 @@ export function buildQueue(
       .sort((a, b) => count(b) - count(a))
       .slice(0, 8);
   }
-  if (opts.topic) return prioritise(phrasesForTopic(opts.topic));
-  const daily = prioritise(PHRASES);
+  const eligible = (list: Phrase[]) => list.filter((p) => levels.indexOf(p.difficulty) <= levelIndex && levels.indexOf(p.difficulty) >= Math.max(0, levelIndex - 1));
+  if (opts.topic) return prioritise(eligible(phrasesForTopic(opts.topic)));
+  const daily = prioritise(eligible(PHRASES));
   const weakSounds = loadAssessment()?.weakSounds ?? [];
   if (!weakSounds.length) return daily.slice(0, DAILY_GOAL);
   const targeted = daily.filter((phrase) =>

@@ -101,7 +101,7 @@ function Practice() {
   );
 
   const title = sound
-    ? `${SOUNDS[sound].label} sound drill`
+    ? `${SOUNDS[sound]?.label ?? sound} sound drill`
     : topic
       ? (getTopic(topic)?.name ?? "Practice")
       : "Daily practice";

@@ -51,9 +51,9 @@ export function WordDetail({
               {(sounds.length ? sounds.slice(0, 2) : [null]).map((s) => (
                 <div key={s ?? "generic"} className="rounded-2xl bg-accent-soft p-4">
                   <p className="font-display text-base font-semibold text-secondary-foreground">
-                    {s ? `Mouth tip · ${SOUNDS[s].label} ${SOUNDS[s].ipa}` : "Mouth tip"}
+                    {s && SOUNDS[s] ? `Mouth tip · ${SOUNDS[s].label} ${SOUNDS[s].ipa}` : "Mouth tip"}
                   </p>
-                  <p className="mt-1 text-sm leading-relaxed">{s ? SOUNDS[s].tip : GENERIC_TIP}</p>
+                  <p className="mt-1 text-sm leading-relaxed">{s && SOUNDS[s] ? SOUNDS[s].tip : GENERIC_TIP}</p>
                 </div>
               ))}
             </div>

@@ -13,8 +13,10 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AssessmentRouteImport } from './routes/assessment'
 import { Route as CustomRouteImport } from './routes/custom'
 import { Route as DialogueRouteImport } from './routes/dialogue'
+import { Route as DictionaryRouteImport } from './routes/dictionary'
 import { Route as PracticeRouteImport } from './routes/practice'
 import { Route as ProgressRouteImport } from './routes/progress'
+import { Route as SkillsRouteImport } from './routes/skills'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -36,6 +38,11 @@ const DialogueRoute = DialogueRouteImport.update({
   path: '/dialogue',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DictionaryRoute = DictionaryRouteImport.update({
+  id: '/dictionary',
+  path: '/dictionary',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PracticeRoute = PracticeRouteImport.update({
   id: '/practice',
   path: '/practice',
@@ -46,22 +53,31 @@ const ProgressRoute = ProgressRouteImport.update({
   path: '/progress',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SkillsRoute = SkillsRouteImport.update({
+  id: '/skills',
+  path: '/skills',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/assessment': typeof AssessmentRoute
   '/custom': typeof CustomRoute
   '/dialogue': typeof DialogueRoute
+  '/dictionary': typeof DictionaryRoute
   '/practice': typeof PracticeRoute
   '/progress': typeof ProgressRoute
+  '/skills': typeof SkillsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/assessment': typeof AssessmentRoute
   '/custom': typeof CustomRoute
   '/dialogue': typeof DialogueRoute
+  '/dictionary': typeof DictionaryRoute
   '/practice': typeof PracticeRoute
   '/progress': typeof ProgressRoute
+  '/skills': typeof SkillsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -69,23 +85,42 @@ export interface FileRoutesById {
   '/assessment': typeof AssessmentRoute
   '/custom': typeof CustomRoute
   '/dialogue': typeof DialogueRoute
+  '/dictionary': typeof DictionaryRoute
   '/practice': typeof PracticeRoute
   '/progress': typeof ProgressRoute
+  '/skills': typeof SkillsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/assessment' | '/custom' | '/dialogue' | '/practice' | '/progress'
+    | '/'
+    | '/assessment'
+    | '/custom'
+    | '/dialogue'
+    | '/dictionary'
+    | '/practice'
+    | '/progress'
+    | '/skills'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/assessment' | '/custom' | '/dialogue' | '/practice' | '/progress'
+  to:
+    | '/'
+    | '/assessment'
+    | '/custom'
+    | '/dialogue'
+    | '/dictionary'
+    | '/practice'
+    | '/progress'
+    | '/skills'
   id:
     | '__root__'
     | '/'
     | '/assessment'
     | '/custom'
     | '/dialogue'
+    | '/dictionary'
     | '/practice'
     | '/progress'
+    | '/skills'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -93,8 +128,10 @@ export interface RootRouteChildren {
   AssessmentRoute: typeof AssessmentRoute
   CustomRoute: typeof CustomRoute
   DialogueRoute: typeof DialogueRoute
+  DictionaryRoute: typeof DictionaryRoute
   PracticeRoute: typeof PracticeRoute
   ProgressRoute: typeof ProgressRoute
+  SkillsRoute: typeof SkillsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -127,6 +164,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DialogueRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dictionary': {
+      id: '/dictionary'
+      path: '/dictionary'
+      fullPath: '/dictionary'
+      preLoaderRoute: typeof DictionaryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/practice': {
       id: '/practice'
       path: '/practice'
@@ -141,6 +185,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProgressRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/skills': {
+      id: '/skills'
+      path: '/skills'
+      fullPath: '/skills'
+      preLoaderRoute: typeof SkillsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -149,8 +200,10 @@ const rootRouteChildren: RootRouteChildren = {
   AssessmentRoute: AssessmentRoute,
   CustomRoute: CustomRoute,
   DialogueRoute: DialogueRoute,
+  DictionaryRoute: DictionaryRoute,
   PracticeRoute: PracticeRoute,
   ProgressRoute: ProgressRoute,
+  SkillsRoute: SkillsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
