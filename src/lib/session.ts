@@ -4,6 +4,7 @@ import { detectSounds, type SoundId } from "./sounds";
 import type { TopicId } from "./topics";
 import { loadAssessment } from "./assessment";
 import type { Difficulty } from "./topics";
+import { loadLearningGoals, topicsForGoals } from "./learning-plan";
 
 function shuffle<T>(arr: T[], rand: () => number): T[] {
   const a = [...arr];
@@ -52,7 +53,11 @@ export function buildQueue(
   }
   const eligible = (list: Phrase[]) => list.filter((p) => levels.indexOf(p.difficulty) <= levelIndex && levels.indexOf(p.difficulty) >= Math.max(0, levelIndex - 1));
   if (opts.topic) return prioritise(eligible(phrasesForTopic(opts.topic)));
-  const daily = prioritise(eligible(PHRASES));
+  const topicOrder = topicsForGoals(loadLearningGoals());
+  const daily = prioritise(eligible(PHRASES)).sort((a,b)=>{
+    const aRank=topicOrder.indexOf(a.topic), bRank=topicOrder.indexOf(b.topic);
+    return (aRank<0?99:aRank)-(bRank<0?99:bRank);
+  });
   const weakSounds = loadAssessment()?.weakSounds ?? [];
   if (!weakSounds.length) return daily.slice(0, DAILY_GOAL);
   const targeted = daily.filter((phrase) =>
