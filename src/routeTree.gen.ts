@@ -10,10 +10,14 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AccentXRayRouteImport } from './routes/accent-x-ray'
+import { Route as ArcadeRouteImport } from './routes/arcade'
 import { Route as AssessmentRouteImport } from './routes/assessment'
 import { Route as CustomRouteImport } from './routes/custom'
+import { Route as DailySessionRouteImport } from './routes/daily-session'
 import { Route as DialogueRouteImport } from './routes/dialogue'
 import { Route as DictionaryRouteImport } from './routes/dictionary'
+import { Route as EarSprintRouteImport } from './routes/ear-sprint'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MinimalPairsRouteImport } from './routes/minimal-pairs'
 import { Route as MissionRouteImport } from './routes/mission'
@@ -27,6 +31,16 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AccentXRayRoute = AccentXRayRouteImport.update({
+  id: '/accent-x-ray',
+  path: '/accent-x-ray',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArcadeRoute = ArcadeRouteImport.update({
+  id: '/arcade',
+  path: '/arcade',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AssessmentRoute = AssessmentRouteImport.update({
   id: '/assessment',
   path: '/assessment',
@@ -37,6 +51,11 @@ const CustomRoute = CustomRouteImport.update({
   path: '/custom',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DailySessionRoute = DailySessionRouteImport.update({
+  id: '/daily-session',
+  path: '/daily-session',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DialogueRoute = DialogueRouteImport.update({
   id: '/dialogue',
   path: '/dialogue',
@@ -45,6 +64,11 @@ const DialogueRoute = DialogueRouteImport.update({
 const DictionaryRoute = DictionaryRouteImport.update({
   id: '/dictionary',
   path: '/dictionary',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EarSprintRoute = EarSprintRouteImport.update({
+  id: '/ear-sprint',
+  path: '/ear-sprint',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -85,10 +109,14 @@ const SkillsRoute = SkillsRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/accent-x-ray': typeof AccentXRayRoute
+  '/arcade': typeof ArcadeRoute
   '/assessment': typeof AssessmentRoute
   '/custom': typeof CustomRoute
+  '/daily-session': typeof DailySessionRoute
   '/dialogue': typeof DialogueRoute
   '/dictionary': typeof DictionaryRoute
+  '/ear-sprint': typeof EarSprintRoute
   '/login': typeof LoginRoute
   '/minimal-pairs': typeof MinimalPairsRoute
   '/mission': typeof MissionRoute
@@ -99,10 +127,14 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/accent-x-ray': typeof AccentXRayRoute
+  '/arcade': typeof ArcadeRoute
   '/assessment': typeof AssessmentRoute
   '/custom': typeof CustomRoute
+  '/daily-session': typeof DailySessionRoute
   '/dialogue': typeof DialogueRoute
   '/dictionary': typeof DictionaryRoute
+  '/ear-sprint': typeof EarSprintRoute
   '/login': typeof LoginRoute
   '/minimal-pairs': typeof MinimalPairsRoute
   '/mission': typeof MissionRoute
@@ -114,10 +146,14 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/accent-x-ray': typeof AccentXRayRoute
+  '/arcade': typeof ArcadeRoute
   '/assessment': typeof AssessmentRoute
   '/custom': typeof CustomRoute
+  '/daily-session': typeof DailySessionRoute
   '/dialogue': typeof DialogueRoute
   '/dictionary': typeof DictionaryRoute
+  '/ear-sprint': typeof EarSprintRoute
   '/login': typeof LoginRoute
   '/minimal-pairs': typeof MinimalPairsRoute
   '/mission': typeof MissionRoute
@@ -130,10 +166,14 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/accent-x-ray'
+    | '/arcade'
     | '/assessment'
     | '/custom'
+    | '/daily-session'
     | '/dialogue'
     | '/dictionary'
+    | '/ear-sprint'
     | '/login'
     | '/minimal-pairs'
     | '/mission'
@@ -144,10 +184,14 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/accent-x-ray'
+    | '/arcade'
     | '/assessment'
     | '/custom'
+    | '/daily-session'
     | '/dialogue'
     | '/dictionary'
+    | '/ear-sprint'
     | '/login'
     | '/minimal-pairs'
     | '/mission'
@@ -158,10 +202,14 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/accent-x-ray'
+    | '/arcade'
     | '/assessment'
     | '/custom'
+    | '/daily-session'
     | '/dialogue'
     | '/dictionary'
+    | '/ear-sprint'
     | '/login'
     | '/minimal-pairs'
     | '/mission'
@@ -173,10 +221,14 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccentXRayRoute: typeof AccentXRayRoute
+  ArcadeRoute: typeof ArcadeRoute
   AssessmentRoute: typeof AssessmentRoute
   CustomRoute: typeof CustomRoute
+  DailySessionRoute: typeof DailySessionRoute
   DialogueRoute: typeof DialogueRoute
   DictionaryRoute: typeof DictionaryRoute
+  EarSprintRoute: typeof EarSprintRoute
   LoginRoute: typeof LoginRoute
   MinimalPairsRoute: typeof MinimalPairsRoute
   MissionRoute: typeof MissionRoute
@@ -195,6 +247,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/accent-x-ray': {
+      id: '/accent-x-ray'
+      path: '/accent-x-ray'
+      fullPath: '/accent-x-ray'
+      preLoaderRoute: typeof AccentXRayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/arcade': {
+      id: '/arcade'
+      path: '/arcade'
+      fullPath: '/arcade'
+      preLoaderRoute: typeof ArcadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/assessment': {
       id: '/assessment'
       path: '/assessment'
@@ -209,6 +275,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CustomRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/daily-session': {
+      id: '/daily-session'
+      path: '/daily-session'
+      fullPath: '/daily-session'
+      preLoaderRoute: typeof DailySessionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dialogue': {
       id: '/dialogue'
       path: '/dialogue'
@@ -221,6 +294,13 @@ declare module '@tanstack/react-router' {
       path: '/dictionary'
       fullPath: '/dictionary'
       preLoaderRoute: typeof DictionaryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ear-sprint': {
+      id: '/ear-sprint'
+      path: '/ear-sprint'
+      fullPath: '/ear-sprint'
+      preLoaderRoute: typeof EarSprintRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -277,10 +357,14 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccentXRayRoute: AccentXRayRoute,
+  ArcadeRoute: ArcadeRoute,
   AssessmentRoute: AssessmentRoute,
   CustomRoute: CustomRoute,
+  DailySessionRoute: DailySessionRoute,
   DialogueRoute: DialogueRoute,
   DictionaryRoute: DictionaryRoute,
+  EarSprintRoute: EarSprintRoute,
   LoginRoute: LoginRoute,
   MinimalPairsRoute: MinimalPairsRoute,
   MissionRoute: MissionRoute,

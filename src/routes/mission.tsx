@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowRight,
   Backpack,
@@ -8,16 +8,21 @@ import {
   Notebook,
   Plug,
   RotateCcw,
+  Star,
   Ticket,
   TrainFront,
   BookUser,
 } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { MicButton } from "@/components/speakup/MicButton";
+import { TimedMission } from "@/components/speakup/TimedMission";
 import { MicHelp } from "@/components/speakup/MicHelp";
 import { MobileShell } from "@/components/speakup/MobileShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { WordMatchReview } from "@/components/speakup/WordMatchReview";
+import { awardXp, recordTroubleWords } from "@/hooks/use-progress";
+import type { ScoreResult } from "@/lib/scoring";
 import { useSpeechRecorder } from "@/hooks/use-speech-recorder";
 import {
   BAG_POCKETS,
@@ -27,9 +32,11 @@ import {
   packingItemIds,
   placedCorrectly,
   readPackingInstruction,
+  scorePackingClarity,
   type Bag,
   type PackingItem,
 } from "@/lib/packing-mission";
+import { isTimedScenario, timedMissions, type TimedScenario } from "@/lib/timed-missions";
 import { speak, stopSpeaking } from "@/lib/speech";
 import { cn } from "@/lib/utils";
 
@@ -49,20 +56,34 @@ const pocketLook = {
 } as const;
 
 export const Route = createFileRoute("/mission")({
-  head: () => ({
+  validateSearch: (search: Record<string, unknown>): { scenario?: TimedScenario | undefined } => ({
+    scenario: isTimedScenario(search["scenario"]) ? search["scenario"] : undefined,
+  }),
+  head: ({ match }) => ({
     meta: [
-      { title: "Pack for the train — Speak Sprout" },
+      {
+        title: `${match.search.scenario ? timedMissions[match.search.scenario].title : "Pack for the train"} — Speak Sprout`,
+      },
       { name: "description", content: "Give spoken directions and see what Kiki puts in the bag." },
     ],
   }),
-  component: PackingMission,
+  component: Mission,
 });
+
+function Mission() {
+  const { scenario } = Route.useSearch();
+  return scenario ? <TimedMission key={scenario} scenario={scenario} /> : <PackingMission />;
+}
 
 function PackingMission() {
   const [listIndex, setListIndex] = useState(0);
   const packingList = PACKING_LISTS[listIndex % PACKING_LISTS.length]!;
   const [bag, setBag] = useState<Bag>({});
   const [draft, setDraft] = useState("");
+  const [focusItem, setFocusItem] = useState<PackingItem | "">("");
+  const [clarity, setClarity] = useState<ScoreResult | null>(null);
+  const [earnedXp, setEarnedXp] = useState(0);
+  const rewarded = useRef(new Set<PackingItem>());
   const [lastTurn, setLastTurn] = useState<{
     instruction: string;
     reply: string;
@@ -79,6 +100,42 @@ function PackingMission() {
   function giveInstruction(instruction: string, spoken = false) {
     if (!instruction.trim() || complete) return;
     const result = readPackingInstruction(instruction, pendingItem);
+    const intendedItem = focusItem || result.item;
+    if (spoken && intendedItem) {
+      const pocketOnly = Boolean(
+        pendingItem &&
+        pendingItem === intendedItem &&
+        !PACKING_ITEMS[intendedItem].aliases.test(instruction.toLowerCase()),
+      );
+      const scored = scorePackingClarity(
+        instruction,
+        intendedItem,
+        packingList[intendedItem],
+        pocketOnly,
+      );
+      setClarity(scored);
+      // An explicitly chosen wrong destination is a task error, not evidence of a sound issue.
+      const wrongDestination =
+        result.kind === "move" && result.pocket !== packingList[intendedItem];
+      recordTroubleWords(
+        wrongDestination
+          ? scored.words.filter(({ target }) => target === intendedItem)
+          : scored.words,
+      );
+      if (
+        result.kind === "move" &&
+        !wrongDestination &&
+        result.item === intendedItem &&
+        !rewarded.current.has(intendedItem)
+      ) {
+        rewarded.current.add(intendedItem);
+        const xp = scored.score >= 90 ? 10 : scored.score >= 70 ? 6 : 3;
+        awardXp(xp);
+        setEarnedXp((total) => total + xp);
+      }
+    } else {
+      setClarity(null);
+    }
     if (result.kind === "clarify") {
       setLastTurn({ instruction, reply: result.message, pendingItem: result.item });
       if (spoken) speak(result.message);
@@ -125,6 +182,9 @@ function PackingMission() {
   return (
     <MobileShell>
       <div className="space-y-5">
+        <Link to="/arcade" className="inline-block text-sm font-bold text-primary">
+          ← Back to Arcade
+        </Link>
         <header className="flex items-start gap-3 sm:gap-4">
           <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary-soft text-primary sm:size-14">
             <TrainFront aria-hidden="true" className="size-6" />
@@ -264,6 +324,9 @@ function PackingMission() {
                 <h2 id="instruction-heading" className="font-display text-xl font-semibold">
                   Mission complete
                 </h2>
+                {earnedXp > 0 && (
+                  <span className="text-sm font-bold text-primary">+{earnedXp} speaking XP</span>
+                )}
                 <Button
                   type="button"
                   variant="soft"
@@ -274,6 +337,10 @@ function PackingMission() {
                     setBag({});
                     setLastTurn(null);
                     setDraft("");
+                    setFocusItem("");
+                    setClarity(null);
+                    setEarnedXp(0);
+                    rewarded.current.clear();
                   }}
                 >
                   <RotateCcw aria-hidden="true" /> Try a new list
@@ -317,6 +384,25 @@ function PackingMission() {
                     />
                   </div>
                 )}
+                <div className="mb-3">
+                  <label className="block text-xs font-bold" htmlFor="packing-focus">
+                    Choose an item for clearer feedback (optional)
+                  </label>
+                  <select
+                    id="packing-focus"
+                    value={focusItem}
+                    onChange={(event) => setFocusItem(event.target.value as PackingItem | "")}
+                    disabled={micActive}
+                    className="mt-1.5 h-10 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                  >
+                    <option value="">Follow my instruction</option>
+                    {packingItemIds.map((item) => (
+                      <option key={item} value={item}>
+                        {PACKING_ITEMS[item].label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <form onSubmit={submit} className="flex items-center gap-2">
                   <Input
                     aria-label="Type an instruction"
@@ -336,9 +422,35 @@ function PackingMission() {
                   </Button>
                 </form>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  The mission checks where the items end up. Speech uses your browser’s transcript.
+                  Spoken instructions earn clarity stars and packing XP. Typed instructions can
+                  still complete the mission.
                 </p>
               </>
+            )}
+            {clarity && (
+              <div className="mt-4 rounded-xl border border-border p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-bold">Clarity score · {clarity.score}% word match</p>
+                  <span
+                    className="flex items-center gap-0.5 text-warning"
+                    aria-label={`${clarity.score >= 90 ? 3 : clarity.score >= 70 ? 2 : 1} of 3 stars`}
+                  >
+                    {[70, 90].map((threshold) => (
+                      <Star
+                        key={threshold}
+                        aria-hidden="true"
+                        className={cn("size-4", clarity.score >= threshold && "fill-current")}
+                      />
+                    ))}
+                    <Star aria-hidden="true" className="order-first size-4 fill-current" />
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Compares the item and pocket words in the browser transcript with the packing
+                  list.
+                </p>
+                <WordMatchReview result={clarity} />
+              </div>
             )}
           </section>
         </div>

@@ -1,6 +1,6 @@
 import { Volume2 } from "lucide-react";
 import { useEffect, useRef } from "react";
-import { useSpeechRecorder } from "@/hooks/use-speech-recorder";
+import { useSpeechRecorder, type SpeechTiming } from "@/hooks/use-speech-recorder";
 import { Button } from "@/components/ui/button";
 import { MicButton } from "@/components/speakup/MicButton";
 import { MicHelp } from "@/components/speakup/MicHelp";
@@ -15,10 +15,12 @@ export function SpeechPrompt({
 }: {
   text: string;
   ipa?: string | undefined;
-  onScore: (result: ScoreResult) => void;
+  onScore: (result: ScoreResult, timing?: SpeechTiming) => void;
 }) {
   const replay = useRef<HTMLAudioElement>(null);
-  const recorder = useSpeechRecorder((alts) => onScore(scoreBest(text, alts)));
+  const recorder = useSpeechRecorder((alts, _clip, timing) =>
+    onScore(scoreBest(text, alts), timing),
+  );
   useEffect(
     () => () => {
       if (recorder.audioUrl) URL.revokeObjectURL(recorder.audioUrl);

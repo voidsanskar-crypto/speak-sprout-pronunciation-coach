@@ -1,3 +1,4 @@
+import { TRACKED_PHONE_DRILLS, type CoachedSound } from "./phonemes";
 import type { SoundId } from "./sounds";
 
 export const ASSESSMENT_KEY = "speakup:assessment:v1";
@@ -5,6 +6,7 @@ export interface AssessmentResult {
   score: number;
   level: "Beginner" | "Intermediate" | "Advanced";
   weakSounds: SoundId[];
+  focusPhones?: CoachedSound[];
   completedAt: number;
 }
 
@@ -61,12 +63,29 @@ export function saveAssessment(scores: number[]): AssessmentResult {
     weakSounds: [...new Set(weakSounds)],
     completedAt: Date.now(),
   };
+  persistAssessment(result);
+  return result;
+}
+
+export function applyAssessmentPlan(
+  result: AssessmentResult,
+  phones: CoachedSound[],
+): AssessmentResult {
+  const weakSounds = phones.flatMap((phone) => {
+    const drill = TRACKED_PHONE_DRILLS[phone];
+    return drill ? [drill] : [];
+  });
+  const next = { ...result, focusPhones: phones, weakSounds: [...new Set(weakSounds)] };
+  persistAssessment(next);
+  return next;
+}
+
+function persistAssessment(result: AssessmentResult) {
   try {
     window.localStorage.setItem(ASSESSMENT_KEY, JSON.stringify(result));
   } catch {
     /* keep the result for this session */
   }
-  return result;
 }
 
 export function approximateIpa(text: string): string {

@@ -1,3 +1,4 @@
+import type { CoachedSound } from "./phonemes";
 import type { SoundId } from "./sounds";
 import { detectSounds } from "./sounds";
 import type { WordResult } from "./scoring";
@@ -35,6 +36,7 @@ export interface ProgressState {
   attempts: Attempt[];
   best: Record<string, number>;
   sounds: Partial<Record<SoundId, SoundStat>>;
+  phonemeMatches?: Partial<Record<CoachedSound, SoundStat>>;
   goalDates: string[];
   translationLanguage: string | null;
   reviewDeck: ReviewCard[];
@@ -83,6 +85,24 @@ export function queueTroubleWords(
     // A repeated miss restarts the sequence without postponing a review that is already due.
     const due = existing && existing.due < tomorrow ? existing.due : tomorrow;
     cards.set(target, { word: target, due, step: 0 });
+  }
+  return [...cards.values()];
+}
+
+export function addPlanWords(
+  deck: ReviewCard[],
+  words: readonly string[],
+  today: string,
+): ReviewCard[] {
+  const cards = new Map(deck.map((card) => [card.word, card]));
+  for (const word of words) {
+    const current = cards.get(word);
+    cards.set(
+      word,
+      current
+        ? { ...current, due: current.due < today ? current.due : today }
+        : { word, due: today, step: 0 },
+    );
   }
   return [...cards.values()];
 }

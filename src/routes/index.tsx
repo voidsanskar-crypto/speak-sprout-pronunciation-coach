@@ -1,19 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Backpack, CalendarClock, Mic, Sprout } from "lucide-react";
+import { ArrowRight, CalendarClock, AudioLines, Gamepad2, Mic, Sprout } from "lucide-react";
 import { Mascot } from "@/components/speakup/Mascot";
 import { MobileShell } from "@/components/speakup/MobileShell";
-import { PracticeTools } from "@/components/speakup/PracticeTools";
 import { Ring } from "@/components/speakup/Ring";
-import { TopicCard } from "@/components/speakup/TopicCard";
 import { Button } from "@/components/ui/button";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useLocalProfile } from "@/hooks/use-local-profile";
 import { useProgress } from "@/hooks/use-progress";
+import { ACCENT_DRILLS } from "@/lib/accent-drills";
+import { PHONEME_IPA } from "@/lib/phonemes";
 import { loadAssessment } from "@/lib/assessment";
-import { PHRASES, phrasesForTopic } from "@/lib/phrases";
-import { DAILY_GOAL, masteredIds, phrasesDoneOn, toDateKey } from "@/lib/progress";
-import { SOUNDS, SOUND_IDS } from "@/lib/sounds";
-import { TOPICS } from "@/lib/topics";
+import { DAILY_GOAL, phrasesDoneOn, toDateKey } from "@/lib/progress";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -44,7 +41,7 @@ function Home() {
   const today = hydrated ? toDateKey(new Date()) : "";
   const done = hydrated ? phrasesDoneOn(progress, today) : 0;
   const assessment = hydrated ? loadAssessment() : null;
-  const mastered = new Set(masteredIds(progress));
+  const earDay = Boolean(today && (Date.parse(today) / 86_400_000) % 2);
   const goalReached = done >= DAILY_GOAL;
   const reviewCount = today ? progress.reviewDeck.filter((card) => card.due <= today).length : 0;
 
@@ -58,7 +55,7 @@ function Home() {
           />
           <Mascot
             eager
-            className="absolute -bottom-4 -right-5 -z-10 w-33 min-[375px]:right-0 min-[375px]:w-38 sm:-bottom-7 sm:right-0 sm:w-48 xl:right-2 xl:w-53"
+            className="absolute -bottom-4 -right-7 -z-10 w-28 min-[375px]:-right-2 min-[375px]:w-36 sm:-bottom-7 sm:right-0 sm:w-48 xl:right-2 xl:w-53"
           />
           <div className="max-w-[15rem] sm:max-w-68">
             <p className="flex items-center gap-1.5 text-xs font-extrabold text-primary">
@@ -69,16 +66,16 @@ function Home() {
               {profile ? `Welcome back, ${profile.name}!` : "Daily speaking practice"}
             </h1>
             <p className="mt-3 max-w-44 text-sm leading-relaxed text-muted-foreground sm:max-w-60">
-              Hear each phrase, record your version, and review what the browser heard.
+              Review due words, practice three phrases, and finish with one quick listening round.
             </p>
             <Button
               asChild
               variant="hero"
               size="pill"
-              className="mt-5 px-4 text-sm sm:px-6 sm:text-base"
+              className="mt-5 min-h-12 whitespace-normal px-3 text-left text-sm sm:px-4 sm:text-base"
             >
-              <Link to="/practice">
-                <Mic aria-hidden="true" /> Start practice
+              <Link to="/daily-session">
+                <Mic aria-hidden="true" /> Start today’s 5-minute session
               </Link>
             </Button>
           </div>
@@ -111,23 +108,23 @@ function Home() {
         </section>
       </div>
 
-      <section className="mt-7 flex flex-wrap items-center gap-3 rounded-[1.5rem] border border-primary/20 bg-primary-soft p-4 sm:p-5">
-        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-card text-primary">
-          <Backpack aria-hidden="true" className="size-5" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <h2 className="font-display text-xl font-semibold">Pack for the train</h2>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            Tell Kiki where to pack each item and watch what she does.
-          </p>
-        </div>
-        <Button asChild variant="hero" className="w-full rounded-xl sm:w-auto">
-          <Link to="/mission">
-            Try the speaking mission <ArrowRight aria-hidden="true" />
-          </Link>
-        </Button>
-      </section>
-
+      {profile?.nativeLanguage && (
+        <Link
+          to="/accent-x-ray"
+          className="mt-3 flex items-center gap-3 rounded-[1.5rem] border border-primary/20 bg-primary-soft p-4 transition-colors hover:border-primary/50 sm:p-5"
+        >
+          <AudioLines aria-hidden="true" className="size-5 shrink-0 text-primary" />
+          <span className="min-w-0 flex-1">
+            <span className="block font-display text-lg font-semibold">Your accent focus</span>
+            <span className="block text-sm text-muted-foreground">
+              {ACCENT_DRILLS[profile.nativeLanguage]
+                .map(({ phone }) => `/${PHONEME_IPA[phone]}/`)
+                .join(" · ")}
+            </span>
+          </span>
+          <ArrowRight aria-hidden="true" className="size-5 shrink-0 text-primary" />
+        </Link>
+      )}
       <Link
         to="/review"
         className="mt-3 flex items-center gap-3 rounded-[1.5rem] border border-border bg-card p-4 transition-colors hover:border-primary/35 hover:bg-primary-soft sm:p-5"
@@ -148,61 +145,30 @@ function Home() {
         <ArrowRight aria-hidden="true" className="size-5 shrink-0 text-primary" />
       </Link>
 
-      <section className="mt-7">
-        <h2 className="mb-3 font-display text-2xl font-semibold">Practice tools</h2>
-        <PracticeTools />
-      </section>
-
-      <section className="mt-7 rounded-[1.5rem] border border-border bg-card p-4 sm:p-5">
-        <h2 className="font-display text-xl font-semibold">Quick sound drills</h2>
-        <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6">
-          {SOUND_IDS.map((id) => (
-            <Link
-              key={id}
-              to="/practice"
-              search={{ sound: id }}
-              className="rounded-xl border border-border px-2.5 py-2 transition-colors hover:border-primary/40 hover:bg-primary-soft"
-            >
-              <span className="block font-display text-base font-semibold text-primary">
-                {SOUNDS[id].label}
-              </span>
-              <span className="block text-xs leading-snug text-muted-foreground">
-                {SOUNDS[id].example}
-              </span>
-            </Link>
-          ))}
+      <section className="mt-3 flex flex-wrap items-center gap-3 rounded-[1.5rem] border border-primary/20 bg-primary-soft p-4 sm:p-5">
+        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-card text-primary">
+          <Gamepad2 aria-hidden="true" className="size-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className="font-display text-xl font-semibold">Today’s quick game</h2>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            {earDay
+              ? "Ear Sprint · Hear the word and tap before time runs out."
+              : "Pack for the train · Tell Kiki where each item goes."}
+          </p>
         </div>
-      </section>
-
-      <section className="mt-7">
-        <div className="mb-3 flex items-end justify-between gap-2">
-          <div>
-            <h2 className="font-display text-2xl font-semibold">Phrase topics</h2>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              {mastered.size} of {PHRASES.length} mastered
-            </p>
-          </div>
-          <Link
-            to="/skills"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-md text-sm font-bold text-primary underline-offset-4 hover:underline"
-          >
-            Open library <ArrowRight aria-hidden="true" className="size-4" />
+        <Button asChild variant="hero" className="w-full rounded-xl sm:w-auto">
+          <Link to={earDay ? "/ear-sprint" : "/mission"}>
+            Play now <ArrowRight aria-hidden="true" />
           </Link>
-        </div>
-        <div className="grid gap-2.5 md:grid-cols-2">
-          {TOPICS.map((topic) => {
-            const phrases = phrasesForTopic(topic.id);
-            return (
-              <TopicCard
-                key={topic.id}
-                topic={topic}
-                total={phrases.length}
-                done={phrases.filter((phrase) => mastered.has(phrase.id)).length}
-              />
-            );
-          })}
-        </div>
+        </Button>
       </section>
+      <Link
+        to="/skills"
+        className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-primary"
+      >
+        Explore the library <ArrowRight aria-hidden="true" className="size-4" />
+      </Link>
     </MobileShell>
   );
 }

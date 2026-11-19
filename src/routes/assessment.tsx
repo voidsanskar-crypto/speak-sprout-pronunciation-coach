@@ -1,4 +1,5 @@
-import { recordTroubleWords } from "@/hooks/use-progress";
+import { type SpeechTiming } from "@/hooks/use-speech-recorder";
+import { addTrainingWords, recordTroubleWords } from "@/hooks/use-progress";
 import { WordMatchReview } from "@/components/speakup/WordMatchReview";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
@@ -6,34 +7,47 @@ import { ArrowRight, Home, RotateCcw } from "lucide-react";
 import { MobileShell } from "@/components/speakup/MobileShell";
 import { SpeechPrompt } from "@/components/speakup/SpeechPrompt";
 import { Button } from "@/components/ui/button";
-import { ASSESSMENT_PHRASES, saveAssessment, type AssessmentResult } from "@/lib/assessment";
+import { diagnosticReport } from "@/lib/assessment-diagnostics";
+import { PHONEME_IPA } from "@/lib/phonemes";
+import {
+  applyAssessmentPlan,
+  ASSESSMENT_PHRASES,
+  saveAssessment,
+  type AssessmentResult,
+} from "@/lib/assessment";
 import type { ScoreResult } from "@/lib/scoring";
 
 export const Route = createFileRoute("/assessment")({ component: Assessment });
 
 function Assessment() {
   const [index, setIndex] = useState(0);
-  const [scores, setScores] = useState<number[]>([]);
+  const [takes, setTakes] = useState<{ score: ScoreResult; speakingMs: number | null }[]>([]);
+  const [planReady, setPlanReady] = useState(false);
   const [last, setLast] = useState<ScoreResult | null>(null);
   const [result, setResult] = useState<AssessmentResult | null>(null);
   const phrase = ASSESSMENT_PHRASES[index];
-  const complete = (score: ScoreResult) => {
+  const complete = (score: ScoreResult, timing?: SpeechTiming) => {
     recordTroubleWords(score.words);
     setLast(score);
-    setScores((previous) => [...previous.slice(0, index), score.score]);
+    setTakes((previous) => [
+      ...previous.slice(0, index),
+      { score, speakingMs: timing?.speakingMs ?? null },
+    ]);
   };
   const advance = () => {
-    if (index === ASSESSMENT_PHRASES.length - 1) setResult(saveAssessment(scores));
+    if (index === ASSESSMENT_PHRASES.length - 1)
+      setResult(saveAssessment(takes.map(({ score }) => score.score)));
     else {
       setIndex((value) => value + 1);
       setLast(null);
     }
   };
+  const report = result ? diagnosticReport(takes) : null;
   return (
     <MobileShell nav={false}>
       <div className="flex items-center gap-3">
-        <Button asChild variant="soft" size="icon-lg" aria-label="Home">
-          <Link to="/">
+        <Button asChild variant="soft" size="icon-lg" aria-label="Practice Hub">
+          <Link to="/skills">
             <Home />
           </Link>
         </Button>
@@ -50,7 +64,7 @@ function Assessment() {
         </div>
         <span className="text-sm font-bold text-muted-foreground">{result ? 5 : index + 1}/5</span>
       </div>
-      {!result ? (
+      {!result || !report ? (
         <>
           <h1 className="mt-7 font-display text-3xl font-bold">Find your starting level</h1>
           <p className="mb-5 mt-2 text-sm text-muted-foreground">
@@ -81,13 +95,66 @@ function Assessment() {
           </p>
           <p className="mt-3 font-display text-4xl font-bold">{result.level}</p>
           <p className="mt-2 text-2xl font-bold text-primary">{result.score}% word match</p>
-          <p className="mt-4 text-sm text-muted-foreground">
-            {result.weakSounds.length
-              ? `Your daily practice will focus more on ${result.weakSounds.join(", ")} sounds.`
-              : "Your daily plan includes a mix of sound drills."}
+          <div className="mt-5 grid grid-cols-3 gap-2 text-left">
+            <Pillar
+              name="Vowels"
+              value={report.vowels === null ? "—" : `${report.vowels}%`}
+              note="Dictionary match"
+            />
+            <Pillar
+              name="Consonants"
+              value={report.consonants === null ? "—" : `${report.consonants}%`}
+              note="Dictionary match"
+            />
+            <Pillar
+              name="Pacing / fluency"
+              value={report.pacing === null ? "—" : `${report.pacing} wpm`}
+              note={report.pacing === null ? "Timing unavailable" : "Estimated pace"}
+            />
+          </div>
+          <p className="mt-3 text-left text-xs text-muted-foreground">
+            Sound results compare dictionary pronunciations using your browser’s transcript. Pacing
+            uses the lines with detected speech timing.
           </p>
+          <section className="mt-5 rounded-2xl bg-primary-soft p-3.5 text-left">
+            <h2 className="font-display text-lg font-semibold">Top trouble sounds</h2>
+            {report.top.length ? (
+              <ul className="mt-2 flex flex-wrap gap-2">
+                {report.top.map(({ phone, words }) => (
+                  <li key={phone} className="rounded-full bg-card px-3 py-1 text-sm font-bold">
+                    /{PHONEME_IPA[phone]}/ · {[...words][0]}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-1 text-sm text-muted-foreground">
+                No clear sound substitutions appeared in these transcripts.
+              </p>
+            )}
+          </section>
           <div className="mt-6 grid gap-3">
-            <Button asChild variant="hero" size="xl">
+            <Button
+              variant="hero"
+              onClick={() => {
+                addTrainingWords(report.reviewWords);
+                setResult(
+                  applyAssessmentPlan(
+                    result,
+                    report.top.map(({ phone }) => phone),
+                  ),
+                );
+                setPlanReady(true);
+              }}
+              disabled={planReady || (!report.reviewWords.length && !report.top.length)}
+            >
+              Generate my custom training plan
+            </Button>
+            {planReady && (
+              <p role="status" className="text-sm text-primary">
+                Plan saved. Review words are due today.
+              </p>
+            )}
+            <Button asChild variant="soft" size="xl">
               <Link to="/practice">
                 Start my daily plan
                 <ArrowRight />
@@ -97,7 +164,8 @@ function Assessment() {
               variant="soft"
               onClick={() => {
                 setIndex(0);
-                setScores([]);
+                setTakes([]);
+                setPlanReady(false);
                 setLast(null);
                 setResult(null);
               }}
@@ -108,5 +176,15 @@ function Assessment() {
         </div>
       )}
     </MobileShell>
+  );
+}
+
+function Pillar({ name, value, note }: { name: string; value: string; note: string }) {
+  return (
+    <div className="rounded-xl bg-muted p-2 sm:p-3">
+      <p className="text-xs font-bold">{name}</p>
+      <p className="mt-1 font-display text-lg font-bold text-primary">{value}</p>
+      <p className="text-xs text-muted-foreground">{note}</p>
+    </div>
   );
 }

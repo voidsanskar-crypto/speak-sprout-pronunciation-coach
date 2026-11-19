@@ -1,8 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { UserRound } from "lucide-react";
 import { useRef, useState, type FormEvent } from "react";
 import { MobileShell } from "@/components/speakup/MobileShell";
 import { Button } from "@/components/ui/button";
+import { isNativeLanguage, NATIVE_LANGUAGES } from "@/lib/accent-drills";
 import { Input } from "@/components/ui/input";
 
 import {
@@ -22,9 +23,9 @@ function LocalProfile() {
   const [draft, setDraft] = useState<Profile | null>(null);
   const [status, setStatus] = useState("");
   const nameInput = useRef<HTMLInputElement>(null);
-  const fields = draft ?? profile ?? { name: "", email: "" };
+  const fields: Profile = draft ?? profile ?? { name: "", email: "" };
 
-  function updateField(field: keyof Profile, value: string) {
+  function updateField(field: "name" | "email", value: string) {
     setDraft({ ...fields, [field]: value });
     setStatus("");
   }
@@ -90,6 +91,31 @@ function LocalProfile() {
             value={fields.email}
             onChange={(event) => updateField("email", event.target.value)}
           />
+        </div>
+        <div>
+          <label htmlFor="profile-language" className="text-sm font-bold">
+            First language <span className="font-normal text-muted-foreground">(optional)</span>
+          </label>
+          <select
+            id="profile-language"
+            value={fields.nativeLanguage ?? ""}
+            onChange={(event) => {
+              const { value } = event.target;
+              setDraft({ ...fields, nativeLanguage: isNativeLanguage(value) ? value : undefined });
+              setStatus("");
+            }}
+            className="mt-1 block h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+          >
+            <option value="">Choose a first language</option>
+            {NATIVE_LANGUAGES.map((language) => (
+              <option key={language}>{language}</option>
+            ))}
+          </select>
+          {profile?.nativeLanguage && (
+            <Link to="/accent-x-ray" className="mt-2 inline-block text-sm font-bold text-primary">
+              Open my Accent X-Ray
+            </Link>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Button type="submit" variant="hero" size="pill" disabled={!fields.name.trim()}>

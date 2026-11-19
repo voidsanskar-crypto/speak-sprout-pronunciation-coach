@@ -18,8 +18,8 @@ function CustomPractice() {
   const [result, setResult] = useState<ScoreResult | null>(null);
   return (
     <MobileShell nav={false}>
-      <Button asChild variant="soft" size="icon-lg" aria-label="Back home">
-        <Link to="/">
+      <Button asChild variant="soft" size="icon-lg" aria-label="Back to Practice Hub">
+        <Link to="/skills">
           <ArrowLeft />
         </Link>
       </Button>

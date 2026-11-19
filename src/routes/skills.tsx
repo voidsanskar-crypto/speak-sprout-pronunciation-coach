@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, AudioLines, Target } from "lucide-react";
+import { ArrowDown, ArrowRight, Target } from "lucide-react";
 import { useEffect, useState } from "react";
 import { MobileShell } from "@/components/speakup/MobileShell";
 import { PracticeTools } from "@/components/speakup/PracticeTools";
+import { SoundChart } from "@/components/speakup/SoundChart";
 import { TopicCard } from "@/components/speakup/TopicCard";
 import { Button } from "@/components/ui/button";
 import { useProgress } from "@/hooks/use-progress";
@@ -13,8 +14,7 @@ import {
   type LearningGoal,
 } from "@/lib/learning-plan";
 import { PHRASES } from "@/lib/phrases";
-import { masteredIds, soundAverage } from "@/lib/progress";
-import { SOUND_IDS, SOUNDS } from "@/lib/sounds";
+import { masteredIds } from "@/lib/progress";
 import { DIFFICULTIES, isDifficulty, TOPICS, type Difficulty } from "@/lib/topics";
 import { cn } from "@/lib/utils";
 
@@ -28,7 +28,7 @@ export const Route = createFileRoute("/skills")({
   }),
   head: () => ({
     meta: [
-      { title: "Practice Library — Speak Sprout" },
+      { title: "Sound Lab & Library — Speak Sprout" },
       {
         name: "description",
         content: "Browse English practice by topic or difficulty, or focus on a specific sound.",
@@ -55,12 +55,32 @@ function Library() {
 
   return (
     <MobileShell>
-      <h1 className="font-display text-3xl font-bold sm:text-4xl">Practice library</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Choose a topic, a level, or a sound to focus on.
-      </p>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-sm font-extrabold text-primary">Practice Hub</p>
+          <h1 className="mt-1 font-display text-3xl font-bold sm:text-4xl">
+            Sound Lab &amp; Library
+          </h1>
+        </div>
+        <a
+          href="#phrase-library"
+          className="inline-flex items-center gap-1 rounded-md text-sm font-bold text-primary"
+        >
+          Phrase library <ArrowDown aria-hidden="true" className="size-4" />
+        </a>
+      </header>
 
-      <section className="mt-6 rounded-[1.5rem] border border-border bg-card p-4 sm:p-6">
+      <div className="mt-5">
+        <SoundChart />
+      </div>
+      <section className="mt-6" aria-label="Practice tools">
+        <PracticeTools />
+      </section>
+
+      <section
+        id="phrase-library"
+        className="mt-6 scroll-mt-20 rounded-[1.5rem] border border-border bg-card p-4 sm:p-6"
+      >
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="font-display text-2xl font-semibold">Phrase topics</h2>
@@ -114,39 +134,6 @@ function Library() {
 
       <section className="mt-6 rounded-[1.5rem] border border-border bg-card p-4 sm:p-6">
         <h2 className="flex items-center gap-2 font-display text-2xl font-semibold">
-          <AudioLines aria-hidden="true" className="size-5 text-primary" /> Sound drills
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Match scores reflect words with the target sound.
-        </p>
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {SOUND_IDS.map((id) => {
-            const sound = SOUNDS[id];
-            const score = soundAverage(progress.sounds[id]);
-            return (
-              <Link
-                key={id}
-                to="/practice"
-                search={{ sound: id }}
-                className="rounded-2xl border border-border p-3 transition-colors hover:border-primary/35 hover:bg-primary-soft"
-              >
-                <div className="flex flex-wrap items-baseline justify-between gap-x-1">
-                  <h3 className="font-display text-lg font-semibold text-primary">{sound.label}</h3>
-                  {score !== null && (
-                    <span className="text-xs font-bold text-muted-foreground">{score}% match</span>
-                  )}
-                </div>
-                <p className="text-xs leading-relaxed text-muted-foreground">
-                  {sound.ipa} · {sound.example}
-                </p>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="mt-6 rounded-[1.5rem] border border-border bg-card p-4 sm:p-6">
-        <h2 className="flex items-center gap-2 font-display text-2xl font-semibold">
           <Target aria-hidden="true" className="size-5 text-primary" /> Learning goals
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -165,11 +152,6 @@ function Library() {
             </Button>
           ))}
         </div>
-      </section>
-
-      <section className="mt-6">
-        <h2 className="mb-3 font-display text-2xl font-semibold">Practice tools</h2>
-        <PracticeTools />
       </section>
     </MobileShell>
   );

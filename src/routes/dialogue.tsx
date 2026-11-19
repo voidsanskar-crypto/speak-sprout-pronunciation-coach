@@ -10,7 +10,15 @@ import {
 import { recordTroubleWords } from "@/hooks/use-progress";
 import type { ScoreResult } from "@/lib/scoring";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, ArrowRight, LoaderCircle, MessageCircle, Send, Volume2 } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  LoaderCircle,
+  MessageCircle,
+  Send,
+  Volume2,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { MobileShell } from "@/components/speakup/MobileShell";
 import { Button } from "@/components/ui/button";
@@ -21,21 +29,51 @@ import { useSpeechRecorder } from "@/hooks/use-speech-recorder";
 import { groqReview, groqRoleplay } from "@/lib/ai/groq.functions";
 import { speak, stopSpeaking } from "@/lib/speech";
 
-const scenes = [
+type Checkpoint = { label: string; expression: RegExp; spokenOnly?: boolean };
+type Scene = { title: string; role: string; scenario: string; checkpoints: Checkpoint[] };
+
+const scenes: Scene[] = [
   {
     title: "Order at a café",
     role: "Barista",
+    checkpoints: [
+      { label: "Order a drink", expression: /\b(?:latte|coffee|tea|espresso|cappuccino)\b/i },
+      { label: "Say “three” aloud (/θ/ drill)", expression: /\b(?:three|3)\b/i, spokenOnly: true },
+      { label: "Ask for the bill", expression: /\b(?:bill|check|pay|how much)\b/i },
+    ],
     scenario: "The learner is ordering a drink and snack at a busy neighborhood café.",
   },
   {
     title: "Check into a hotel",
     role: "Receptionist",
+    checkpoints: [
+      { label: "Use “reservation”", expression: /\breservations?\b/i },
+      { label: "Say “three” aloud (/θ/ drill)", expression: /\b(?:three|3)\b/i, spokenOnly: true },
+      {
+        label: "Ask about breakfast or Wi-Fi",
+        expression: /\b(?:breakfast|wi[ -]?fi|internet)\b/i,
+      },
+    ],
     scenario:
       "The learner is checking into a hotel, asking about amenities and resolving a small booking issue.",
   },
   {
     title: "Meet a recruiter",
     role: "Recruiter",
+    checkpoints: [
+      {
+        label: "Describe your experience",
+        expression: /\b(?:experience|led|worked|built|managed)\b/i,
+      },
+      {
+        label: "Mention a result",
+        expression: /\b(?:result|improved|increased|reduced|delivered)\b/i,
+      },
+      {
+        label: "Ask the recruiter a question",
+        expression: /\?|\b(?:how|what|when|could you|can you)\b/i,
+      },
+    ],
     scenario:
       "The learner is in a friendly job interview and should explain their experience and ask thoughtful questions.",
   },
@@ -45,10 +83,12 @@ type Turn = { role: "user" | "assistant"; content: string };
 type Review = { overall: string; strengths: string[]; languageTip: string; taskProgress: string };
 export const Route = createFileRoute("/dialogue")({ component: Dialogue });
 function Dialogue() {
-  const [scene, setScene] = useState<(typeof scenes)[number] | null>(null);
+  const [scene, setScene] = useState<Scene | null>(null);
   const [custom, setCustom] = useState("");
   const [role, setRole] = useState("Conversation partner");
   const [draft, setDraft] = useState("");
+  const [spokenDraft, setSpokenDraft] = useState<string | null>(null);
+  const [checked, setChecked] = useState<number[]>([]);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -66,13 +106,15 @@ function Dialogue() {
     [],
   );
 
-  const start = (next: (typeof scenes)[number]) => {
+  const start = (next: Scene) => {
     setScene(next);
     setTurns([]);
     setError("");
     setDraft("");
     setReview(null);
     setSpeechRates([]);
+    setChecked([]);
+    setSpokenDraft(null);
   };
 
   const send = async () => {
@@ -95,6 +137,15 @@ function Dialogue() {
         return;
       }
       setTurns([...history, { role: "assistant", content: result.reply }]);
+      setChecked((previous) => [
+        ...new Set([
+          ...previous,
+          ...scene.checkpoints.flatMap(({ expression, spokenOnly }, index) =>
+            (!spokenOnly || spokenDraft === text) && expression.test(text) ? [index] : [],
+          ),
+        ]),
+      ]);
+      setSpokenDraft(null);
       setDraft((current) => (current.trim() === text ? "" : current));
       speak(result.reply);
     } catch {
@@ -132,8 +183,8 @@ function Dialogue() {
   };
   return (
     <MobileShell nav={false}>
-      <Button asChild variant="soft" size="icon-lg" aria-label="Home">
-        <Link to="/">
+      <Button asChild variant="soft" size="icon-lg" aria-label="Back to Arcade">
+        <Link to="/arcade">
           <ArrowLeft />
         </Link>
       </Button>
@@ -189,6 +240,17 @@ function Dialogue() {
                   title: "Custom roleplay",
                   role: role.trim() || "Conversation partner",
                   scenario: custom.trim(),
+                  checkpoints: [
+                    {
+                      label: "Open with a greeting",
+                      expression: /\b(?:hello|hi|good morning|good afternoon)\b/i,
+                    },
+                    {
+                      label: "Ask a question",
+                      expression: /\?|\b(?:where|when|what|how|could you|can you)\b/i,
+                    },
+                    { label: "Say thank you", expression: /\b(?:thanks|thank you|appreciate)\b/i },
+                  ],
                 })
               }
             >
@@ -202,6 +264,41 @@ function Dialogue() {
           <p className="mt-1 text-sm text-muted-foreground">
             You · {scene.role} · Speak naturally; the AI responds to your words.
           </p>
+          <section
+            className="mt-4 rounded-2xl border border-border bg-card p-4"
+            aria-labelledby="roleplay-checkpoints"
+          >
+            <h2 id="roleplay-checkpoints" className="font-display text-lg font-bold">
+              Conversation checkpoints
+            </h2>
+            <ul className="mt-2 flex flex-wrap gap-1.5" aria-live="polite">
+              {scene.checkpoints.map(({ label }, index) => (
+                <li
+                  key={label}
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${checked.includes(index) ? "bg-success-soft text-success" : "bg-muted text-muted-foreground"}`}
+                >
+                  {checked.includes(index) && (
+                    <>
+                      <Check aria-hidden="true" className="size-3.5" />
+                      <span className="sr-only">Completed: </span>
+                    </>
+                  )}
+                  {label}
+                </li>
+              ))}
+            </ul>
+            {checked.length === scene.checkpoints.length ? (
+              <p role="status" className="mt-2 text-sm font-bold text-success">
+                All checkpoints complete.
+              </p>
+            ) : (
+              scene.checkpoints.some(({ spokenOnly }) => spokenOnly) && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Spoken checkpoints use the browser transcript.
+                </p>
+              )
+            )}
+          </section>
           {review ? (
             <section className="mt-5 rounded-[2rem] bg-card p-5 shadow-card">
               <h2 className="font-display text-2xl font-bold">Conversation feedback</h2>
@@ -308,7 +405,10 @@ function Dialogue() {
               <div className="mt-3">
                 {!practiceReply && (
                   <OpenMic
-                    onTranscript={setDraft}
+                    onTranscript={(text) => {
+                      setDraft(text);
+                      setSpokenDraft(text.trim());
+                    }}
                     onRate={(rate) => setSpeechRates((previous) => [...previous, rate])}
                   />
                 )}
@@ -316,7 +416,10 @@ function Dialogue() {
                   aria-label="Your response"
                   maxLength={1200}
                   value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
+                  onChange={(e) => {
+                    setDraft(e.target.value);
+                    setSpokenDraft(null);
+                  }}
                   rows={3}
                   className="mt-2 rounded-2xl bg-card"
                   placeholder="Type or record a response…"

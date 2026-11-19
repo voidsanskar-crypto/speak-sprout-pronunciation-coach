@@ -1,0 +1,114 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+  ArrowUpRight,
+  Backpack,
+  Coffee,
+  Gamepad2,
+  Headphones,
+  MessageCircle,
+  TrainFront,
+  Zap,
+} from "lucide-react";
+import { MobileShell } from "@/components/speakup/MobileShell";
+
+export const Route = createFileRoute("/arcade")({
+  head: () => ({ meta: [{ title: "Arcade — Speak Sprout" }] }),
+  component: Arcade,
+});
+
+const games = [
+  {
+    to: "/ear-sprint",
+    title: "Ear Sprint",
+    text: "Pick the word you hear. Build an XP combo in 60 seconds.",
+    Icon: Zap,
+  },
+  {
+    to: "/minimal-pairs",
+    title: "Minimal Pairs",
+    text: "Hear the difference, then practice both words aloud.",
+    Icon: Headphones,
+  },
+  {
+    to: "/dialogue",
+    title: "AI Roleplay",
+    text: "Rehearse a real conversation and practice your replies.",
+    Icon: MessageCircle,
+  },
+] as const;
+
+const missions = [
+  { title: "Pack for the train", text: "Tell Kiki what goes in each pocket.", Icon: Backpack },
+  {
+    scenario: "coffee",
+    title: "Coffee Shop Rush",
+    text: "Order breakfast and answer the barista in 45 seconds.",
+    Icon: Coffee,
+  },
+  {
+    scenario: "subway",
+    title: "Subway Gate Emergency",
+    text: "Ask for the correct terminal before your train leaves.",
+    Icon: TrainFront,
+  },
+] as const;
+
+function Arcade() {
+  const tile =
+    "group relative rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/45 hover:bg-primary-soft sm:p-5";
+  return (
+    <MobileShell>
+      <div className="flex items-center gap-3 rounded-[1.75rem] bg-primary-soft p-5 sm:p-7">
+        <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground">
+          <Gamepad2 aria-hidden="true" />
+        </span>
+        <h1 className="font-display text-3xl font-bold sm:text-4xl">Arcade</h1>
+      </div>
+      <section className="mt-6" aria-labelledby="arcade-games">
+        <h2 id="arcade-games" className="mb-3 font-display text-2xl font-semibold">
+          Games &amp; roleplay
+        </h2>
+        <div className="grid gap-2.5 sm:grid-cols-3">
+          {games.map(({ to, title, text, Icon }) => (
+            <Link to={to} key={to} className={tile}>
+              <Tile title={title} text={text} Icon={Icon} />
+            </Link>
+          ))}
+        </div>
+      </section>
+      <section className="mt-6" aria-labelledby="arcade-missions">
+        <h2 id="arcade-missions" className="mb-3 font-display text-2xl font-semibold">
+          Speaking missions
+        </h2>
+        <div className="grid gap-2.5 sm:grid-cols-3">
+          {missions.map(({ title, text, Icon, ...mission }) => (
+            <Link
+              to="/mission"
+              search={"scenario" in mission ? { scenario: mission.scenario } : {}}
+              key={title}
+              className={tile}
+            >
+              <Tile title={title} text={text} Icon={Icon} />
+            </Link>
+          ))}
+        </div>
+      </section>
+    </MobileShell>
+  );
+}
+
+function Tile({ title, text, Icon }: { title: string; text: string; Icon: typeof Zap }) {
+  return (
+    <>
+      <span className="grid size-10 place-items-center rounded-xl bg-secondary text-secondary-foreground">
+        <Icon aria-hidden="true" className="size-5" />
+      </span>
+      <ArrowUpRight
+        aria-hidden="true"
+        className="absolute right-4 top-4 size-4 text-muted-foreground group-hover:text-primary"
+      />
+      <h3 className="mt-3 font-display text-lg font-bold leading-tight">{title}</h3>
+      <p className="mt-1 text-sm text-muted-foreground">{text}</p>
+    </>
+  );
+}

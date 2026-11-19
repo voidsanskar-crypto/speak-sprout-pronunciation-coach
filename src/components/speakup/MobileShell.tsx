@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
-import { BarChart3, Flame, Home, LibraryBig, Mic, Sprout, UserRound, Zap } from "lucide-react";
+import { Link, useLocation } from "@tanstack/react-router";
+import { BarChart3, Flame, Gamepad2, Home, LibraryBig, Sprout, UserRound, Zap } from "lucide-react";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { useProgress } from "@/hooks/use-progress";
 import { currentStreak, toDateKey } from "@/lib/progress";
@@ -8,10 +8,20 @@ import { useLocalProfile } from "@/hooks/use-local-profile";
 import { cn } from "@/lib/utils";
 
 const destinations = [
-  { to: "/", label: "Home", Icon: Home },
-  { to: "/practice", label: "Practice", Icon: Mic },
-  { to: "/skills", label: "Library", Icon: LibraryBig },
-  { to: "/progress", label: "Progress", Icon: BarChart3 },
+  { to: "/", label: "Today", Icon: Home, routes: ["/review"] },
+  {
+    to: "/skills",
+    label: "Practice Hub",
+    Icon: LibraryBig,
+    routes: ["/accent-x-ray", "/dictionary"],
+  },
+  {
+    to: "/arcade",
+    label: "Arcade",
+    Icon: Gamepad2,
+    routes: ["/mission", "/minimal-pairs", "/ear-sprint"],
+  },
+  { to: "/progress", label: "Progress", Icon: BarChart3, routes: [] },
 ] as const;
 
 export function MobileShell({ children, nav = true }: { children: ReactNode; nav?: boolean }) {
@@ -141,14 +151,16 @@ function firstGrapheme(name: string) {
 }
 
 function Navigation({ className }: { className: string }) {
+  const pathname = useLocation({ select: (location) => location.pathname });
   return (
     <nav aria-label="Main navigation" className={className}>
-      {destinations.map(({ to, label, Icon }) => (
+      {destinations.map(({ to, label, Icon, routes }) => (
         <Link
           key={to}
           to={to}
           activeOptions={{ exact: true, includeSearch: false }}
-          className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl px-2 text-[11px] font-bold text-muted-foreground transition-colors hover:bg-muted data-[status=active]:bg-primary-soft data-[status=active]:text-primary lg:flex-row lg:justify-start lg:gap-3 lg:px-3 lg:text-sm"
+          data-section-active={routes.some((route) => pathname === route) || undefined}
+          className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl px-0.5 text-center text-[11px] font-bold text-muted-foreground transition-colors hover:bg-muted data-[status=active]:bg-primary-soft data-[status=active]:text-primary data-[section-active=true]:bg-primary-soft data-[section-active=true]:text-primary lg:flex-row lg:justify-start lg:gap-3 lg:px-3 lg:text-sm"
         >
           <Icon aria-hidden="true" className="size-5 shrink-0" />
           {label}

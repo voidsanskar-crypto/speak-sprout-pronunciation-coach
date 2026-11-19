@@ -204,7 +204,7 @@ function MinimalPairs() {
                 <RotateCcw aria-hidden="true" /> Play again
               </Button>
               <Button asChild variant="soft">
-                <Link to="/skills">Back to library</Link>
+                <Link to="/arcade">Back to Arcade</Link>
               </Button>
             </div>
           </section>

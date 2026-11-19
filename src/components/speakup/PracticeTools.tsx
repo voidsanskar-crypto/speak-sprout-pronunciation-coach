@@ -1,32 +1,12 @@
 import { Link } from "@tanstack/react-router";
-import {
-  ArrowUpRight,
-  BookOpen,
-  CalendarClock,
-  Headphones,
-  MessageCircle,
-  NotebookPen,
-  Target,
-} from "lucide-react";
+import { ArrowUpRight, BookOpen, AudioLines, NotebookPen, Target } from "lucide-react";
 
 const activities = [
   {
-    to: "/review",
-    label: "Personal Review Deck",
-    detail: "Review words you struggled with",
-    Icon: CalendarClock,
-  },
-  {
-    to: "/minimal-pairs",
-    label: "Minimal pairs",
-    detail: "Hear and practice similar sounds",
-    Icon: Headphones,
-  },
-  {
-    to: "/dialogue",
-    label: "Roleplay",
-    detail: "Rehearse a real conversation",
-    Icon: MessageCircle,
+    to: "/accent-x-ray",
+    label: "Accent X-Ray",
+    detail: "Try drills for your first language",
+    Icon: AudioLines,
   },
   {
     to: "/custom",
@@ -50,7 +30,7 @@ const activities = [
 
 export function PracticeTools() {
   return (
-    <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
+    <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
       {activities.map(({ to, label, detail, Icon }) => (
         <Link
           key={to}

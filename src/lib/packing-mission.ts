@@ -1,3 +1,5 @@
+import { scoreTranscript } from "./scoring";
+
 const items = {
   passport: { label: "Passport", aliases: /\bpassports?\b/ },
   ticket: { label: "Ticket", aliases: /\btickets?\b/ },
@@ -100,4 +102,29 @@ export function readPackingInstruction(transcript: string, pendingItem?: Packing
   }
 
   return { kind: "move", item, pocket: namedPockets[0]! };
+}
+
+// Score the instruction's item and destination without requiring a fixed sentence.
+export function scorePackingClarity(
+  transcript: string,
+  item: PackingItem,
+  pocket: BagPocket,
+  pocketOnly: boolean,
+) {
+  const text = transcript.toLowerCase().replace(/’/g, "'");
+  const destination = text.match(/\bfrom\b.*?\bto\b(.*)/)?.[1];
+  const content = (
+    destination ? [pocketOnly ? "" : text.split(/\bfrom\b/)[0], destination].join(" ") : text
+  ).replace(/\binside\s+(?:the\s+)?(?=front\b|side\b)/g, "");
+  const itemName = items[item].label.toLowerCase();
+  const pocketName = pockets[pocket].label.toLowerCase();
+  const simplified = content
+    .replace(items[item].aliases, pocketOnly ? "" : itemName)
+    .replace(pockets[pocket].aliases, pocketName.split(" ")[0]!)
+    .replace(
+      /\b(?:put|pack|place|move|take|add|can|could|would|you|i|please|kiki|the|a|an|my|in|into|on|to|it|now|for|me|lets|let's)\b/g,
+      " ",
+    );
+  const expected = pocketOnly ? pocketName : `${itemName} ${pocketName}`;
+  return scoreTranscript(expected, simplified);
 }

@@ -1,6 +1,9 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { Route as DailyRoute } from "@/routes/daily-session";
+import { Route as SprintRoute } from "@/routes/ear-sprint";
+import { DEFAULT_PROGRESS } from "@/lib/progress";
 import { Route as EarRoute } from "@/routes/minimal-pairs";
 import { Route as ReviewRoute } from "@/routes/review";
 import { scoreTranscript, type ScoreResult } from "@/lib/scoring";
@@ -9,6 +12,8 @@ const mocks = vi.hoisted(() => ({
   speak: vi.fn(),
   reviewDeckWord: vi.fn(),
   recordTroubleWords: vi.fn(),
+  awardXp: vi.fn(),
+  recordAttempt: vi.fn(),
 }));
 
 vi.mock("@tanstack/react-router", async (importOriginal) => ({
@@ -39,18 +44,27 @@ vi.mock("@/hooks/use-hydrated", () => ({ useHydrated: () => true }));
 vi.mock("@/hooks/use-progress", () => ({
   reviewDeckWord: mocks.reviewDeckWord,
   recordTroubleWords: mocks.recordTroubleWords,
-  useProgress: () => ({
-    reviewDeck: [
-      { word: "think", due: "2000-01-01", step: 0 },
-      { word: "vest", due: "2000-01-01", step: 0 },
-    ],
-  }),
+  awardXp: mocks.awardXp,
+  recordAttempt: mocks.recordAttempt,
+  useProgress: () => sampleProgress,
+  getProgressSnapshot: () => sampleProgress,
 }));
+
+const sampleProgress = {
+  ...DEFAULT_PROGRESS,
+  reviewDeck: [
+    { word: "think", due: "2000-01-01", step: 0 },
+    { word: "vest", due: "2000-01-01", step: 0 },
+    { word: "ship", due: "2999-01-01", step: 0 },
+  ],
+};
 
 beforeEach(() => {
   mocks.speak.mockClear();
   mocks.reviewDeckWord.mockClear();
   mocks.recordTroubleWords.mockClear();
+  mocks.awardXp.mockClear();
+  mocks.recordAttempt.mockClear();
 });
 
 describe("learning routes", () => {
@@ -123,5 +137,67 @@ describe("learning routes", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save green review" }));
     expect(mocks.reviewDeckWord).toHaveBeenCalledWith("think", true);
     expect(container.querySelector(".review-card-exit")).toHaveTextContent("think");
+  });
+
+  it("walks through two due words, three scored phrases, and one listening round", () => {
+    const Daily = DailyRoute.options.component!;
+    render(<Daily />);
+    expect(screen.getByText("Step 1 of 6")).toBeVisible();
+    for (const word of ["think", "vest"]) {
+      expect(screen.getByText(word, { exact: true })).toBeVisible();
+      fireEvent.click(screen.getByRole("button", { name: "Mock matching recording" }));
+      fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+      expect(mocks.reviewDeckWord).toHaveBeenLastCalledWith(word, true);
+    }
+    for (let i = 0; i < 3; i++) {
+      expect(screen.getByRole("heading", { name: "Practice a target phrase" })).toBeVisible();
+      fireEvent.click(screen.getByRole("button", { name: "Mock matching recording" }));
+      fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    }
+    expect(mocks.recordAttempt).toHaveBeenCalledTimes(3);
+    fireEvent.click(screen.getByRole("button", { name: "Play mystery word" }));
+    fireEvent.click(screen.getByRole("button", { name: mocks.speak.mock.lastCall?.[0] as string }));
+    fireEvent.click(screen.getByRole("button", { name: "Finish session" }));
+    expect(screen.getByText("6 of 6 activities practiced.")).toBeVisible();
+  });
+
+  it("awards Ear Sprint combo XP once per round and expires the sprint at 60 seconds", () => {
+    const Sprint = SprintRoute.options.component!;
+    vi.useFakeTimers({
+      toFake: ["setInterval", "clearInterval", "setTimeout", "clearTimeout", "performance"],
+    });
+    let player: HTMLMediaElement | undefined;
+    const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockImplementation(function (
+      this: HTMLMediaElement,
+    ) {
+      player = this;
+      return Promise.resolve();
+    });
+    const pause = vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {});
+    const view = render(<Sprint />);
+    try {
+      fireEvent.click(screen.getByRole("button", { name: "Start 60-second sprint" }));
+      for (let round = 0; round < 3; round++) {
+        const word = player?.src.split("/").at(-1)?.replace(".mp3", "") ?? "";
+        const option = screen.getByRole("button", { name: word });
+        expect(option).toBeDisabled();
+        fireEvent.ended(player!);
+        fireEvent.click(option);
+        fireEvent.click(option);
+        act(() => vi.advanceTimersByTime(360));
+      }
+      expect(mocks.awardXp.mock.calls).toEqual([[10], [20], [40]]);
+      fireEvent.ended(player!);
+      act(() => vi.advanceTimersByTime(3100));
+      expect(screen.getByText("0 in a row")).toBeVisible();
+      act(() => vi.advanceTimersByTime(60_000));
+      expect(screen.getByText("Sprint finished")).toBeVisible();
+      expect(screen.getByText(/Best combo: 3/)).toBeVisible();
+    } finally {
+      view.unmount();
+      vi.useRealTimers();
+      play.mockRestore();
+      pause.mockRestore();
+    }
   });
 });

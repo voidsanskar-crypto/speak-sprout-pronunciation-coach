@@ -1,18 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { usePhonemeAudio } from "@/hooks/use-phoneme-audio";
 import { useProgress } from "@/hooks/use-progress";
 import { useTextTranslations } from "@/hooks/use-translations";
 import { compareSpelling } from "@/lib/compare-spelling";
-import {
-  dictionarySoundContrast,
-  SOUND_COACHING,
-  type CoachedSound,
-  type DictionaryContrast,
-} from "@/lib/phoneme-review";
+import { dictionarySoundContrast, type DictionaryContrast } from "@/lib/phoneme-review";
+import { SOUND_COACHING, type CoachedSound } from "@/lib/phonemes";
 import type { ScoreResult, WordResult } from "@/lib/scoring";
-import { speak, stopSpeaking } from "@/lib/speech";
+import { speak } from "@/lib/speech";
 import { cn } from "@/lib/utils";
 
 const labels = {
@@ -106,21 +103,12 @@ function Review({
   copy,
   translated,
 }: ReviewProps & { copy: typeof labels; translated?: Record<string, string> | undefined }) {
-  const audio = useRef<HTMLAudioElement | null>(null);
   const [activeChip, setActiveChip] = useState<string | null>(null);
-  const [audioError, setAudioError] = useState(false);
-  useEffect(() => () => audio.current?.pause(), []);
+  const { play, stop, audioError } = usePhonemeAudio();
 
   function playPhone(phone: CoachedSound) {
     onSoundPlay?.();
-    stopSpeaking();
-    audio.current?.pause();
-    setAudioError(false);
-    const sample = new Audio(`${import.meta.env.BASE_URL}phonemes/${phone}.mp3`);
-    audio.current = sample;
-    void sample.play().catch(() => {
-      if (audio.current === sample) setAudioError(true);
-    });
+    play(phone);
   }
 
   return (
@@ -175,7 +163,7 @@ function Review({
                   variant="soft"
                   aria-label={`${copy.listen}: ${target}`}
                   onClick={() => {
-                    audio.current?.pause();
+                    stop();
                     onReplay(target);
                   }}
                 >

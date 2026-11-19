@@ -5,6 +5,8 @@ export type RecorderStatus = "idle" | "requesting" | "listening" | "processing";
 export type RecorderErrorKind =
   "permission" | "unsupported" | "no-speech" | "no-mic" | "network" | "other";
 
+export type SpeechTiming = { speakingMs: number | null };
+
 export interface RecorderError {
   kind: RecorderErrorKind;
   message: string;
@@ -17,7 +19,7 @@ function isAndroid() {
 }
 
 export function useSpeechRecorder(
-  onResult: (alternatives: string[], recordingUrl?: string) => void,
+  onResult: (alternatives: string[], recordingUrl?: string, timing?: SpeechTiming) => void,
   { captureAudio = true }: { captureAudio?: boolean } = {},
 ) {
   const [status, setStatus] = useState<RecorderStatus>("idle");
@@ -171,8 +173,16 @@ export function useSpeechRecorder(
     let latest = "";
     let failed = false;
 
-    rec.onspeechstart = () => setSpeaking(true);
-    rec.onspeechend = () => setSpeaking(false);
+    let firstSpeech: number | null = null;
+    let lastSpeech: number | null = null;
+    rec.onspeechstart = () => {
+      firstSpeech ??= performance.now();
+      setSpeaking(true);
+    };
+    rec.onspeechend = () => {
+      lastSpeech = performance.now();
+      setSpeaking(false);
+    };
     rec.onresult = (e) => {
       let text = "";
       const alts: string[] = [];
@@ -233,7 +243,12 @@ export function useSpeechRecorder(
         if (alternatives.length && !(failed && !latest)) {
           setStatus("processing");
           setError(null);
-          onResultRef.current(alternatives, audioUrlRef.current ?? undefined);
+          onResultRef.current(alternatives, audioUrlRef.current ?? undefined, {
+            speakingMs:
+              firstSpeech !== null && lastSpeech !== null && lastSpeech > firstSpeech
+                ? lastSpeech - firstSpeech
+                : null,
+          });
           setStatus("idle");
         } else {
           if (!failed) {

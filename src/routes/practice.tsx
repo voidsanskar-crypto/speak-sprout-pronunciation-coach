@@ -17,6 +17,7 @@ import { MicButton } from "@/components/speakup/MicButton";
 import { MicHelp } from "@/components/speakup/MicHelp";
 import { Waveform } from "@/components/speakup/Waveform";
 import { scoreTone } from "@/components/speakup/ScoreGauge";
+import { PitchShadowing } from "@/components/speakup/PitchShadowing";
 import { PracticeFeedback } from "@/components/speakup/PracticeFeedback";
 import { LanguagePicker } from "@/components/speakup/LanguagePicker";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import {
 import { useSpeechRecorder } from "@/hooks/use-speech-recorder";
 import { usePhraseTranslation } from "@/hooks/use-translations";
 import { fireConfetti } from "@/lib/celebrate";
+import { PHONEME_IPA, type CoachedSound } from "@/lib/phonemes";
 import type { Phrase } from "@/lib/phrases";
 import { xpForScore } from "@/lib/progress";
 import { scoreBest, type ScoreResult } from "@/lib/scoring";
@@ -41,6 +43,7 @@ import { cn } from "@/lib/utils";
 interface PracticeSearch {
   topic?: TopicId | undefined;
   sound?: SoundId | undefined;
+  phone?: CoachedSound | undefined;
   level?: Difficulty | undefined;
 }
 
@@ -51,7 +54,12 @@ export const Route = createFileRoute("/practice")({
     const topic = TOPICS.some((t) => t.id === rawTopic) ? (rawTopic as TopicId) : undefined;
     const sound = SOUND_IDS.includes(rawSound as SoundId) ? (rawSound as SoundId) : undefined;
     const level = isDifficulty(search["level"]) ? search["level"] : undefined;
-    return { topic, sound, level };
+    const rawPhone = search["phone"];
+    const phone =
+      typeof rawPhone === "string" && Object.hasOwn(PHONEME_IPA, rawPhone)
+        ? (rawPhone as CoachedSound)
+        : undefined;
+    return { topic, sound, phone, level };
   },
   head: () => ({
     meta: [
@@ -76,7 +84,7 @@ export const Route = createFileRoute("/practice")({
 type Stage = "practice" | "feedback" | "summary";
 
 function Practice() {
-  const { topic, sound, level } = Route.useSearch();
+  const { topic, sound, phone, level } = Route.useSearch();
   const progress = useProgress();
   const [queue, setQueue] = useState<Phrase[] | null>(null);
   const [index, setIndex] = useState(0);
@@ -85,13 +93,13 @@ function Practice() {
   const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
   const [sessionScores, setSessionScores] = useState<number[]>([]);
   useEffect(() => {
-    setQueue(buildQueue({ topic, sound, level }, getProgressSnapshot()));
+    setQueue(buildQueue({ topic, sound, phone, level }, getProgressSnapshot()));
     setIndex(0);
     setStage("practice");
     setResult(null);
     setRecordingUrl(null);
     setSessionScores([]);
-  }, [topic, sound, level]);
+  }, [topic, sound, phone, level]);
 
   useEffect(
     () => () => {
@@ -101,11 +109,13 @@ function Practice() {
     [recordingUrl],
   );
 
-  const sessionTitle = sound
-    ? `${SOUNDS[sound]?.label ?? sound} sound drill`
-    : topic
-      ? (getTopic(topic)?.name ?? "Practice")
-      : "Daily practice";
+  const sessionTitle = phone
+    ? `/${PHONEME_IPA[phone]}/ sound drill`
+    : sound
+      ? `${SOUNDS[sound]?.label ?? sound} sound drill`
+      : topic
+        ? (getTopic(topic)?.name ?? "Practice")
+        : "Daily practice";
   const title = level ? `${sessionTitle} · ${level}` : sessionTitle;
   const phrase = queue?.[index];
 
@@ -139,7 +149,7 @@ function Practice() {
     <MobileShell nav={false}>
       <div className="flex items-center gap-3">
         <Button asChild variant="soft" size="icon-lg" aria-label="Close practice">
-          <Link to="/">
+          <Link to={topic || sound || phone || level ? "/skills" : "/"}>
             <X />
           </Link>
         </Button>
@@ -438,6 +448,7 @@ function PracticeCard({
         </div>
       </div>
 
+      <PitchShadowing phraseId={phrase.id} disabled={status !== "idle" || leaving} />
       <LanguagePicker
         open={pickerOpen}
         onOpenChange={setPickerOpen}

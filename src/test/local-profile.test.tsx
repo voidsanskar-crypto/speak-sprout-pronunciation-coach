@@ -6,6 +6,7 @@ import { Route as ProfileRoute } from "@/routes/login";
 
 vi.mock("@tanstack/react-router", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@tanstack/react-router")>()),
+  useLocation: () => "/",
   Link: ({ to, children, "aria-label": label }: { to: string } & ComponentProps<"a">) => (
     <a href={to} aria-label={label}>
       {children}
@@ -31,12 +32,14 @@ describe("local profile", () => {
     view.rerender(<Profile />);
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: " Sanskar " } });
     fireEvent.change(screen.getByLabelText(/Email/), { target: { value: "learner@example.com" } });
+    fireEvent.change(screen.getByLabelText(/First language/), { target: { value: "Spanish" } });
     fireEvent.click(screen.getByRole("button", { name: "Save profile" }));
     expect(screen.getByRole("status")).toHaveTextContent("Profile saved.");
     expect(screen.getAllByRole("link", { name: "Local profile for Sanskar" })).toHaveLength(1);
 
     view.rerender(<Home />);
     expect(screen.getByRole("heading", { name: "Welcome back, Sanskar!" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Your accent focus/ })).toHaveTextContent("/s/");
     const avatarLinks = screen.getAllByRole("link", { name: "Local profile for Sanskar" });
     expect(screen.getByRole("link", { name: "Progress: 0-day streak, 42 XP" })).toBeVisible();
     expect(avatarLinks.some((link) => link.textContent === "S")).toBe(true);

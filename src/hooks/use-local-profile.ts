@@ -1,3 +1,4 @@
+import { isNativeLanguage, type NativeLanguage } from "@/lib/accent-drills";
 import { useSyncExternalStore } from "react";
 
 const PROFILE_KEY = "speakup:profile:v1";
@@ -6,6 +7,7 @@ const listeners = new Set<() => void>();
 export interface Profile {
   name: string;
   email: string;
+  nativeLanguage?: NativeLanguage | undefined;
 }
 
 let lastStored: string | null = null;
@@ -20,11 +22,18 @@ function getProfile(): Profile | null {
     lastProfile = null;
     if (stored === null) return null;
 
-    const profile = JSON.parse(stored) as { name?: unknown; email?: unknown } | null;
+    const profile = JSON.parse(stored) as {
+      name?: unknown;
+      email?: unknown;
+      nativeLanguage?: unknown;
+    } | null;
     if (typeof profile?.name === "string" && profile.name.trim()) {
       lastProfile = {
         name: profile.name.trim(),
         email: typeof profile.email === "string" ? profile.email : "",
+        nativeLanguage: isNativeLanguage(profile.nativeLanguage)
+          ? profile.nativeLanguage
+          : undefined,
       };
     }
     return lastProfile;
@@ -58,7 +67,10 @@ export function saveLocalProfile(profile: Profile) {
   if (!name) return false;
 
   try {
-    window.localStorage.setItem(PROFILE_KEY, JSON.stringify({ name, email: profile.email.trim() }));
+    window.localStorage.setItem(
+      PROFILE_KEY,
+      JSON.stringify({ name, email: profile.email.trim(), nativeLanguage: profile.nativeLanguage }),
+    );
   } catch {
     return false;
   }
