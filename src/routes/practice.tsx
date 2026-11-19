@@ -461,6 +461,15 @@ function Feedback({
           className="absolute right-2 top-2 w-20 animate-float"
         />
         <ScoreGauge score={result.score} />
+        <div className="mt-4 rounded-2xl bg-primary-soft p-4 text-sm leading-relaxed">
+          <p className="font-bold">Your practice feedback</p>
+          <p className="mt-1">{result.score >= 85
+            ? `The speech recognizer matched ${counts.correct} of ${result.words.length} target words clearly. Keep that pace, then replay your recording and compare your stress and rhythm with the example.`
+            : result.score >= 55
+              ? `The recognizer matched ${counts.correct} words, marked ${counts.close} as close, and missed ${counts.missed}. Tap the highlighted words for specific mouth-position tips, then retry the whole sentence.`
+              : `The recognizer matched ${counts.correct} words and missed ${counts.missed}. Try listening to the example once slowly, practice the missed words individually, and record again in a quiet place.`}</p>
+          <p className="mt-2 text-xs text-muted-foreground">Scores reflect recognized words and can be affected by accent, microphone, and background noise. They do not measure phoneme accuracy.</p>
+        </div>
         <div className="mt-2 flex justify-center">
           <span className="inline-flex items-center gap-1 rounded-full bg-warning-soft px-3 py-1 text-sm font-extrabold">
             <Zap className="size-4 fill-sun text-sun" /> +{xpForScore(result.score)} XP
