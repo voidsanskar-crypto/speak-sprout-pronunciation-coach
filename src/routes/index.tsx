@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Backpack, Flame, Mic, Sprout, Zap } from "lucide-react";
+import { ArrowRight, Backpack, CalendarClock, Flame, Mic, Sprout, Zap } from "lucide-react";
 import { Mascot } from "@/components/speakup/Mascot";
 import { MobileShell } from "@/components/speakup/MobileShell";
 import { PracticeTools } from "@/components/speakup/PracticeTools";
@@ -45,6 +45,7 @@ function Home() {
   const assessment = hydrated ? loadAssessment() : null;
   const mastered = new Set(masteredIds(progress));
   const goalReached = done >= DAILY_GOAL;
+  const reviewCount = today ? progress.reviewDeck.filter((card) => card.due <= today).length : 0;
 
   return (
     <MobileShell>
@@ -133,6 +134,26 @@ function Home() {
           </Link>
         </Button>
       </section>
+
+      <Link
+        to="/review"
+        className="mt-3 flex items-center gap-3 rounded-[1.5rem] border border-border bg-card p-4 transition-colors hover:border-primary/35 hover:bg-primary-soft sm:p-5"
+      >
+        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
+          <CalendarClock aria-hidden="true" className="size-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-display text-lg font-semibold">
+            {reviewCount
+              ? `${reviewCount} trouble ${reviewCount === 1 ? "word" : "words"} to practice today`
+              : "Personal Review Deck"}
+          </span>
+          <span className="block text-xs text-muted-foreground">
+            {reviewCount ? "Open today’s review" : "No trouble words due today"}
+          </span>
+        </span>
+        <ArrowRight aria-hidden="true" className="size-5 shrink-0 text-primary" />
+      </Link>
 
       <section className="mt-7">
         <h2 className="mb-3 font-display text-2xl font-semibold">Practice tools</h2>

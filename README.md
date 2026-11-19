@@ -62,6 +62,10 @@ src/
 public/         Static files
 ```
 
+## Offline dictionary comparisons
+
+The word review uses a bundled selection of the [Carnegie Mellon Pronouncing Dictionary](https://github.com/cmusphinx/cmudict/tree/74790861f652b15e4ac49015a90074ad62a27690) for American English. The selection includes curriculum and minimal-pair words and their closest phoneme neighbors. Build it with `python scripts/build-lexicon.py /path/to/cmudict.dict`. See [CMUdict license](public/cmudict-license.txt). The comparison runs locally after the app loads. Browser speech recognition and optional translation can require a connection.
+
 ## Notes and limitations
 
 - Browser speech recognition availability and accuracy vary by browser, device, accent, and network.

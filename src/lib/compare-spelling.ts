@@ -1,5 +1,9 @@
 /** Align the written letters. A highlighted letter is a transcript difference. */
 export function compareSpelling(target: string, heard: string) {
+  return compareSymbols(Array.from(target), Array.from(heard));
+}
+
+export function compareSymbols(target: readonly string[], heard: readonly string[]) {
   const expected = Array.from(target, (letter) => ({ letter, different: true }));
   const recognized = Array.from(heard, (letter) => ({ letter, different: true }));
   const distances = Array.from({ length: expected.length + 1 }, (_, i) => {
@@ -35,5 +39,5 @@ export function compareSpelling(target: string, heard: string) {
       j--;
     }
   }
-  return { expected, recognized };
+  return { expected, recognized, distance: distances[expected.length]![recognized.length]! };
 }

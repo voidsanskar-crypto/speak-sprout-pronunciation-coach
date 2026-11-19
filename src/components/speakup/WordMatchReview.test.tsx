@@ -49,7 +49,8 @@ describe("word match review", () => {
     });
     render(<WordMatchReview result={scoreTranscript("I think so", "I sink so")} />);
     expect(screen.getByRole("heading", { name: "Palabras para repasar" })).toBeVisible();
-    expect(screen.getByText("Palabra esperada")).toBeVisible();
+    expect(screen.getAllByText("Palabra esperada")).toHaveLength(2);
+    expect(screen.getByText("Dictionary sound contrast")).toBeVisible();
     const call = preferences.translations.mock.calls[0];
     expect(call?.[1]).toBe("Spanish");
     expect(JSON.stringify(call?.[0])).not.toMatch(/\b(?:think|sink)\b/);

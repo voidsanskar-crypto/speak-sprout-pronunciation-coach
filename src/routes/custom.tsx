@@ -1,3 +1,4 @@
+import { recordTroubleWords } from "@/hooks/use-progress";
 import { WordMatchReview } from "@/components/speakup/WordMatchReview";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
@@ -65,7 +66,14 @@ function CustomPractice() {
               A spelling-based guide; English spelling can’t reliably determine exact pronunciation.
             </p>
           </div>
-          <SpeechPrompt key={phrase} text={phrase} onScore={setResult} />
+          <SpeechPrompt
+            key={phrase}
+            text={phrase}
+            onScore={(score) => {
+              recordTroubleWords(score.words);
+              setResult(score);
+            }}
+          />
           {result && (
             <div className="mt-4 rounded-2xl bg-card p-4">
               <p className="font-display text-2xl font-bold">Word match · {result.score}%</p>

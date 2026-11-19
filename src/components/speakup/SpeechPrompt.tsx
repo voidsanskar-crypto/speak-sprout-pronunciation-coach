@@ -1,10 +1,10 @@
 import { Volume2 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useSpeechRecorder } from "@/hooks/use-speech-recorder";
 import { Button } from "@/components/ui/button";
 import { MicButton } from "@/components/speakup/MicButton";
 import { MicHelp } from "@/components/speakup/MicHelp";
-import { speak, canSpeak } from "@/lib/speech";
+import { speak, canSpeak, stopSpeaking } from "@/lib/speech";
 import { scoreBest, type ScoreResult } from "@/lib/scoring";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +17,7 @@ export function SpeechPrompt({
   ipa?: string | undefined;
   onScore: (result: ScoreResult) => void;
 }) {
+  const replay = useRef<HTMLAudioElement>(null);
   const recorder = useSpeechRecorder((alts) => onScore(scoreBest(text, alts)));
   useEffect(
     () => () => {
@@ -24,6 +25,13 @@ export function SpeechPrompt({
     },
     [recorder.audioUrl],
   );
+  useEffect(() => stopSpeaking, []);
+
+  function startRecording() {
+    replay.current?.pause();
+    void recorder.start();
+  }
+
   return (
     <div className="rounded-[2rem] bg-card p-6 shadow-card">
       <p className="font-display text-2xl font-semibold leading-tight">{text}</p>
@@ -33,28 +41,36 @@ export function SpeechPrompt({
           variant="mint"
           size="pill"
           className="flex-1"
-          onClick={() => canSpeak() && speak(text)}
+          onClick={() => {
+            replay.current?.pause();
+            if (canSpeak()) speak(text);
+          }}
+          disabled={recorder.status !== "idle"}
         >
           <Volume2 /> Hear example
         </Button>
-        {recorder.audioUrl && (
-          <Button
-            variant="soft"
-            size="pill"
-            className="flex-1"
-            onClick={() => void new Audio(recorder.audioUrl!).play()}
-          >
-            <Volume2 /> Listen to yourself
-          </Button>
-        )}
       </div>
+      {recorder.audioUrl && (
+        <div className="mt-3">
+          <p className="mb-1 text-xs font-bold text-muted-foreground">Your recording</p>
+          <audio
+            ref={replay}
+            controls
+            src={recorder.audioUrl}
+            preload="metadata"
+            onPlay={stopSpeaking}
+            aria-label="Listen to yourself"
+            className="h-10 w-full"
+          />
+        </div>
+      )}
       <div className="mt-5 flex min-h-20 flex-col items-center justify-center">
         {recorder.error ? (
           <MicHelp
             error={recorder.error}
             onRetry={() => {
               recorder.clearError();
-              void recorder.start();
+              startRecording();
             }}
             onDismiss={recorder.clearError}
           />
@@ -74,11 +90,7 @@ export function SpeechPrompt({
         )}
       </div>
       <div className="flex justify-center">
-        <MicButton
-          status={recorder.status}
-          onStart={() => void recorder.start()}
-          onStop={recorder.stop}
-        />
+        <MicButton status={recorder.status} onStart={startRecording} onStop={recorder.stop} />
       </div>
     </div>
   );

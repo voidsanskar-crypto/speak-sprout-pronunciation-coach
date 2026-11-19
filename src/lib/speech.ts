@@ -63,7 +63,10 @@ if (typeof window !== "undefined" && "speechSynthesis" in window) {
   };
 }
 
-export function speak(text: string, opts: { slow?: boolean; onEnd?: () => void } = {}) {
+export function speak(
+  text: string,
+  opts: { slow?: boolean; onEnd?: () => void; onError?: () => void } = {},
+) {
   if (!canSpeak()) return;
   const synth = window.speechSynthesis;
   synth.cancel();
@@ -74,7 +77,10 @@ export function speak(text: string, opts: { slow?: boolean; onEnd?: () => void }
   u.rate = opts.slow ? 0.6 : 0.95;
   u.pitch = 1;
   u.onend = () => opts.onEnd?.();
-  u.onerror = () => opts.onEnd?.();
+  u.onerror = (event) => {
+    if (event.error !== "canceled" && event.error !== "interrupted") opts.onError?.();
+    opts.onEnd?.();
+  };
   synth.speak(u);
 }
 

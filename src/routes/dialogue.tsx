@@ -1,3 +1,14 @@
+import { SpeechPrompt } from "@/components/speakup/SpeechPrompt";
+import { WordMatchReview } from "@/components/speakup/WordMatchReview";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { recordTroubleWords } from "@/hooks/use-progress";
+import type { ScoreResult } from "@/lib/scoring";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, LoaderCircle, MessageCircle, Send, Volume2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -44,6 +55,8 @@ function Dialogue() {
   const [review, setReview] = useState<Review | null>(null);
   const [reviewing, setReviewing] = useState(false);
   const [speechRates, setSpeechRates] = useState<number[]>([]);
+  const [practiceReply, setPracticeReply] = useState<string | null>(null);
+  const [replyScore, setReplyScore] = useState<ScoreResult | null>(null);
   const request = useRef<symbol | null>(null);
   useEffect(
     () => () => {
@@ -260,6 +273,19 @@ function Dialogue() {
                       {turn.role === "user" ? "You" : scene.role}
                     </p>
                     <p className="mt-1 whitespace-pre-wrap">{turn.content}</p>
+                    {turn.role === "user" && (
+                      <button
+                        type="button"
+                        className="mt-2 text-xs font-semibold underline underline-offset-2"
+                        onClick={() => {
+                          stopSpeaking();
+                          setPracticeReply(turn.content.split(/\s+/).slice(0, 16).join(" "));
+                          setReplyScore(null);
+                        }}
+                      >
+                        Practice this reply
+                      </button>
+                    )}
                     {turn.role === "assistant" && (
                       <button
                         className="mt-2 inline-flex items-center gap-1 text-xs font-bold"
@@ -280,10 +306,12 @@ function Dialogue() {
                 </p>
               )}
               <div className="mt-3">
-                <OpenMic
-                  onTranscript={setDraft}
-                  onRate={(rate) => setSpeechRates((previous) => [...previous, rate])}
-                />
+                {!practiceReply && (
+                  <OpenMic
+                    onTranscript={setDraft}
+                    onRate={(rate) => setSpeechRates((previous) => [...previous, rate])}
+                  />
+                )}
                 <Textarea
                   aria-label="Your response"
                   maxLength={1200}
@@ -342,6 +370,42 @@ function Dialogue() {
           )}
         </>
       )}
+      <Dialog
+        open={practiceReply !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            stopSpeaking();
+            setPracticeReply(null);
+          }
+        }}
+      >
+        <DialogContent className="max-h-[85dvh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Practice this reply</DialogTitle>
+            <DialogDescription>
+              Read the words shown. Words under 70% word match go in your Personal Review Deck.
+            </DialogDescription>
+          </DialogHeader>
+          {practiceReply && (
+            <SpeechPrompt
+              key={practiceReply}
+              text={practiceReply}
+              onScore={(score) => {
+                recordTroubleWords(score.words);
+                setReplyScore(score);
+              }}
+            />
+          )}
+          {replyScore && (
+            <>
+              <p role="status" className="text-sm font-bold">
+                {replyScore.score}% word match
+              </p>
+              <WordMatchReview result={replyScore} />
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </MobileShell>
   );
 }

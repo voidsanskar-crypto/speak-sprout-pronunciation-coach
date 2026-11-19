@@ -1,3 +1,4 @@
+import { recordTroubleWords } from "@/hooks/use-progress";
 import { WordMatchReview } from "@/components/speakup/WordMatchReview";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
@@ -17,6 +18,7 @@ function Assessment() {
   const [result, setResult] = useState<AssessmentResult | null>(null);
   const phrase = ASSESSMENT_PHRASES[index];
   const complete = (score: ScoreResult) => {
+    recordTroubleWords(score.words);
     setLast(score);
     setScores((previous) => [...previous.slice(0, index), score.score]);
   };

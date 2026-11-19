@@ -35,6 +35,7 @@ export function useSpeechRecorder(
   const audioUrlRef = useRef<string | null>(null);
   const finishRecordingRef = useRef<(() => void) | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const generation = useRef(0);
   const onResultRef = useRef(onResult);
   onResultRef.current = onResult;
 
@@ -49,17 +50,33 @@ export function useSpeechRecorder(
     setSpeaking(false);
   }, []);
 
+  const discardMediaRecording = useCallback(() => {
+    const media = mediaRecorderRef.current;
+    if (media) {
+      media.onstop = null;
+      media.ondataavailable = null;
+      if (media.state === "recording") media.stop();
+      mediaRecorderRef.current = null;
+    }
+    audioChunksRef.current = [];
+    finishRecordingRef.current = null;
+  }, []);
+
   useEffect(
     () => () => {
-      recRef.current?.abort();
-      if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
+      generation.current++;
+      const recorder = recRef.current;
+      recRef.current = null;
+      recorder?.abort();
+      discardMediaRecording();
       cleanupAudio();
     },
-    [cleanupAudio],
+    [cleanupAudio, discardMediaRecording],
   );
 
   const start = useCallback(async () => {
     if (status !== "idle") return;
+    const attempt = ++generation.current;
     setError(null);
     setInterim("");
     setAudioUrl((previous) => {
@@ -85,6 +102,10 @@ export function useSpeechRecorder(
     if (captureAudio && navigator.mediaDevices?.getUserMedia && !isAndroid()) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        if (generation.current !== attempt) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
         streamRef.current = stream;
         if (typeof MediaRecorder !== "undefined") {
           audioChunksRef.current = [];
@@ -123,6 +144,7 @@ export function useSpeechRecorder(
         ctxRef.current = ctx;
         setAnalyser(node);
       } catch (e) {
+        if (generation.current !== attempt) return;
         const name = (e as DOMException)?.name;
         if (name === "NotAllowedError" || name === "SecurityError") {
           setStatus("idle");
@@ -201,9 +223,11 @@ export function useSpeechRecorder(
       );
     };
     rec.onend = () => {
+      if (recRef.current !== rec) return;
       const needsMediaStop = mediaRecorderRef.current?.state === "recording";
       const alternatives = finals.length ? finals : latest ? [latest] : [];
       const finish = () => {
+        if (recRef.current !== rec) return;
         cleanupAudio();
         recRef.current = null;
         if (alternatives.length && !(failed && !latest)) {
@@ -243,13 +267,15 @@ export function useSpeechRecorder(
   }, []);
 
   const cancel = useCallback(() => {
-    recRef.current?.abort();
+    generation.current++;
+    const recorder = recRef.current;
     recRef.current = null;
-    if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
+    recorder?.abort();
+    discardMediaRecording();
     cleanupAudio();
     setStatus("idle");
     setInterim("");
-  }, [cleanupAudio]);
+  }, [cleanupAudio, discardMediaRecording]);
 
   const clearError = useCallback(() => setError(null), []);
 

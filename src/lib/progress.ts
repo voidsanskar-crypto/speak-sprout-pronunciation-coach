@@ -18,6 +18,14 @@ export interface SoundStat {
   total: number; // sum of word scores 0..100
 }
 
+export interface ReviewCard {
+  word: string;
+  due: string;
+  step: number;
+}
+
+const REVIEW_INTERVALS = [1, 3, 7] as const;
+
 export interface ProgressState {
   version: 1;
   xp: number;
@@ -29,6 +37,7 @@ export interface ProgressState {
   sounds: Partial<Record<SoundId, SoundStat>>;
   goalDates: string[];
   translationLanguage: string | null;
+  reviewDeck: ReviewCard[];
 }
 
 export const DEFAULT_PROGRESS: ProgressState = {
@@ -42,6 +51,7 @@ export const DEFAULT_PROGRESS: ProgressState = {
   sounds: {},
   goalDates: [],
   translationLanguage: null,
+  reviewDeck: [],
 };
 
 export function toDateKey(d: Date): string {
@@ -56,6 +66,42 @@ export function addDays(key: string, delta: number): string {
   const date = new Date(y, m - 1, d);
   date.setDate(date.getDate() + delta);
   return toDateKey(date);
+}
+
+export function queueTroubleWords(
+  deck: ReviewCard[],
+  words: Pick<WordResult, "target" | "similarity">[],
+  today: string,
+): ReviewCard[] {
+  const trouble = words.filter((word) => word.target && word.similarity < 0.7);
+  if (!trouble.length) return deck;
+
+  const tomorrow = addDays(today, REVIEW_INTERVALS[0]);
+  const cards = new Map(deck.map((card) => [card.word, card]));
+  for (const { target } of trouble) {
+    const existing = cards.get(target);
+    // A repeated miss restarts the sequence without postponing a review that is already due.
+    const due = existing && existing.due < tomorrow ? existing.due : tomorrow;
+    cards.set(target, { word: target, due, step: 0 });
+  }
+  return [...cards.values()];
+}
+
+export function reviewWord(
+  deck: ReviewCard[],
+  word: string,
+  remembered: boolean,
+  today: string,
+): ReviewCard[] {
+  const card = deck.find((entry) => entry.word === word);
+  if (!card || card.due > today) return deck;
+  const step = remembered ? card.step + 1 : 0;
+  const days = REVIEW_INTERVALS[step];
+  if (days === undefined) return deck.filter((entry) => entry.word !== word);
+
+  return deck.map((entry) =>
+    entry.word === word ? { word, due: addDays(today, days), step } : entry,
+  );
 }
 
 export function xpForScore(score: number): number {
@@ -100,7 +146,10 @@ export function applyAttempt(
   for (const w of input.words) {
     for (const s of detectSounds(w.target)) {
       const prev = sounds[s] ?? { attempts: 0, total: 0 };
-      sounds[s] = { attempts: prev.attempts + 1, total: prev.total + Math.round(w.similarity * 100) };
+      sounds[s] = {
+        attempts: prev.attempts + 1,
+        total: prev.total + Math.round(w.similarity * 100),
+      };
     }
   }
 
@@ -121,6 +170,7 @@ export function applyAttempt(
     attempts,
     best,
     sounds,
+    reviewDeck: queueTroubleWords(state.reviewDeck, input.words, today),
   };
   if (phrasesDoneOn(next, today) >= DAILY_GOAL && !next.goalDates.includes(today)) {
     next.goalDates = [...next.goalDates, today];

@@ -15,9 +15,11 @@ import { Route as CustomRouteImport } from './routes/custom'
 import { Route as DialogueRouteImport } from './routes/dialogue'
 import { Route as DictionaryRouteImport } from './routes/dictionary'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as MinimalPairsRouteImport } from './routes/minimal-pairs'
 import { Route as MissionRouteImport } from './routes/mission'
 import { Route as PracticeRouteImport } from './routes/practice'
 import { Route as ProgressRouteImport } from './routes/progress'
+import { Route as ReviewRouteImport } from './routes/review'
 import { Route as SkillsRouteImport } from './routes/skills'
 
 const IndexRoute = IndexRouteImport.update({
@@ -50,6 +52,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MinimalPairsRoute = MinimalPairsRouteImport.update({
+  id: '/minimal-pairs',
+  path: '/minimal-pairs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MissionRoute = MissionRouteImport.update({
   id: '/mission',
   path: '/mission',
@@ -65,6 +72,11 @@ const ProgressRoute = ProgressRouteImport.update({
   path: '/progress',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReviewRoute = ReviewRouteImport.update({
+  id: '/review',
+  path: '/review',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SkillsRoute = SkillsRouteImport.update({
   id: '/skills',
   path: '/skills',
@@ -78,9 +90,11 @@ export interface FileRoutesByFullPath {
   '/dialogue': typeof DialogueRoute
   '/dictionary': typeof DictionaryRoute
   '/login': typeof LoginRoute
+  '/minimal-pairs': typeof MinimalPairsRoute
   '/mission': typeof MissionRoute
   '/practice': typeof PracticeRoute
   '/progress': typeof ProgressRoute
+  '/review': typeof ReviewRoute
   '/skills': typeof SkillsRoute
 }
 export interface FileRoutesByTo {
@@ -90,9 +104,11 @@ export interface FileRoutesByTo {
   '/dialogue': typeof DialogueRoute
   '/dictionary': typeof DictionaryRoute
   '/login': typeof LoginRoute
+  '/minimal-pairs': typeof MinimalPairsRoute
   '/mission': typeof MissionRoute
   '/practice': typeof PracticeRoute
   '/progress': typeof ProgressRoute
+  '/review': typeof ReviewRoute
   '/skills': typeof SkillsRoute
 }
 export interface FileRoutesById {
@@ -103,9 +119,11 @@ export interface FileRoutesById {
   '/dialogue': typeof DialogueRoute
   '/dictionary': typeof DictionaryRoute
   '/login': typeof LoginRoute
+  '/minimal-pairs': typeof MinimalPairsRoute
   '/mission': typeof MissionRoute
   '/practice': typeof PracticeRoute
   '/progress': typeof ProgressRoute
+  '/review': typeof ReviewRoute
   '/skills': typeof SkillsRoute
 }
 export interface FileRouteTypes {
@@ -117,9 +135,11 @@ export interface FileRouteTypes {
     | '/dialogue'
     | '/dictionary'
     | '/login'
+    | '/minimal-pairs'
     | '/mission'
     | '/practice'
     | '/progress'
+    | '/review'
     | '/skills'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -129,9 +149,11 @@ export interface FileRouteTypes {
     | '/dialogue'
     | '/dictionary'
     | '/login'
+    | '/minimal-pairs'
     | '/mission'
     | '/practice'
     | '/progress'
+    | '/review'
     | '/skills'
   id:
     | '__root__'
@@ -141,9 +163,11 @@ export interface FileRouteTypes {
     | '/dialogue'
     | '/dictionary'
     | '/login'
+    | '/minimal-pairs'
     | '/mission'
     | '/practice'
     | '/progress'
+    | '/review'
     | '/skills'
   fileRoutesById: FileRoutesById
 }
@@ -154,9 +178,11 @@ export interface RootRouteChildren {
   DialogueRoute: typeof DialogueRoute
   DictionaryRoute: typeof DictionaryRoute
   LoginRoute: typeof LoginRoute
+  MinimalPairsRoute: typeof MinimalPairsRoute
   MissionRoute: typeof MissionRoute
   PracticeRoute: typeof PracticeRoute
   ProgressRoute: typeof ProgressRoute
+  ReviewRoute: typeof ReviewRoute
   SkillsRoute: typeof SkillsRoute
 }
 
@@ -204,6 +230,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/minimal-pairs': {
+      id: '/minimal-pairs'
+      path: '/minimal-pairs'
+      fullPath: '/minimal-pairs'
+      preLoaderRoute: typeof MinimalPairsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/mission': {
       id: '/mission'
       path: '/mission'
@@ -225,6 +258,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProgressRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/review': {
+      id: '/review'
+      path: '/review'
+      fullPath: '/review'
+      preLoaderRoute: typeof ReviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/skills': {
       id: '/skills'
       path: '/skills'
@@ -242,9 +282,11 @@ const rootRouteChildren: RootRouteChildren = {
   DialogueRoute: DialogueRoute,
   DictionaryRoute: DictionaryRoute,
   LoginRoute: LoginRoute,
+  MinimalPairsRoute: MinimalPairsRoute,
   MissionRoute: MissionRoute,
   PracticeRoute: PracticeRoute,
   ProgressRoute: ProgressRoute,
+  ReviewRoute: ReviewRoute,
   SkillsRoute: SkillsRoute,
 }
 export const routeTree = rootRouteImport
