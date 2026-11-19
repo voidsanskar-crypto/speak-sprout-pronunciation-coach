@@ -470,6 +470,7 @@ function Feedback({
         <p className="mt-6 text-center text-xs font-extrabold uppercase tracking-widest text-muted-foreground">
           Tap a word for tips
         </p>
+        <p className="mb-3 text-center text-xs text-muted-foreground">This score compares recognized words with the prompt. It is not a phoneme-level pronunciation measurement.</p>
         <div className="mt-3 flex flex-wrap justify-center gap-2">
           {words.map((w, i) => {
             const r = result.words[i];
