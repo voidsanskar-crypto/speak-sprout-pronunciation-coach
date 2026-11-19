@@ -11,7 +11,8 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
   vite: {
-    base: "/speak-sprout-pronunciation-coach/",
+    // GitHub Pages serves this project from a repository subpath; Vercel serves it at `/`.
+    base: process.env["VERCEL"] ? "/" : "/speak-sprout-pronunciation-coach/",
   },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
