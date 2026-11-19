@@ -6,15 +6,15 @@ import type { WordResult } from "@/lib/scoring";
 import { speak } from "@/lib/speech";
 import { cn } from "@/lib/utils";
 
-const statusText = { correct: "Nailed it", close: "Almost there", missed: "Needs work" } as const;
+const statusText = { correct: "Matched", close: "Close match", missed: "Unmatched" } as const;
 const statusClass = {
   correct: "bg-success-soft text-success",
   close: "bg-warning-soft text-warning",
   missed: "bg-danger-soft text-danger",
 } as const;
 const statusDescription = {
-  correct: "The browser recognizer matched this word to the target. Listen once more and keep the same clear shape.",
-  close: "The recognizer heard a similar word. Compare the example with your recording, then slow down the vowel and final consonant.",
+  correct: "The browser recognizer matched this word to the target. Listen to the example and compare it with your replay.",
+  close: "The recognizer heard a similar word. Compare the example with your recording, then try the full phrase again.",
   missed: "The recognizer did not match this word. Practice it by itself, then say it again in the full phrase.",
 } as const;
 
@@ -54,7 +54,7 @@ export function WordDetail({
             <div className="mt-3 rounded-2xl bg-primary-soft p-4">
               <p className="font-bold">What this result suggests</p>
               <p className="mt-1 text-sm leading-relaxed">{statusDescription[word.status]}</p>
-              <p className="mt-2 text-xs text-muted-foreground">This is a transcript match, not a measurement of the individual speech sounds.</p>
+              <p className="mt-2 text-xs text-muted-foreground">The match is based on the browser transcript. The tips below describe the target sounds.</p>
             </div>
 
             <div className="mt-4 space-y-3">

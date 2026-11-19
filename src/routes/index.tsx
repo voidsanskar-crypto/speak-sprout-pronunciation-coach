@@ -19,14 +19,12 @@ export const Route = createFileRoute("/")({
       { title: "SpeakUp — Your daily English pronunciation coach" },
       {
         name: "description",
-        content:
-          "Build a daily streak, practice real phrases and get instant feedback on every word you say.",
+        content: "Build a daily streak, practice real phrases and get instant word-match feedback.",
       },
       { property: "og:title", content: "SpeakUp — Your daily English pronunciation coach" },
       {
         property: "og:description",
-        content:
-          "Build a daily streak, practice real phrases and get instant feedback on every word you say.",
+        content: "Build a daily streak, practice real phrases and get instant word-match feedback.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -71,7 +69,16 @@ function Home() {
             </span>
           </div>
         </div>
-        <div className="flex flex-col items-center"><Link to="/login" aria-label="Profile" className="mb-1 rounded-full bg-card p-2 text-primary shadow-soft"><UserRound className="size-5"/></Link><Mascot eager className="-mr-2 -mt-2 w-32 animate-float" /></div>
+        <div className="flex flex-col items-center">
+          <Link
+            to="/login"
+            aria-label="Profile"
+            className="mb-1 rounded-full bg-card p-2 text-primary shadow-soft"
+          >
+            <UserRound className="size-5" />
+          </Link>
+          <Mascot eager className="-mr-2 -mt-2 w-32 animate-float" />
+        </div>
       </header>
 
       <section className="mt-5 flex items-center gap-5 rounded-[2rem] bg-card p-5 shadow-card animate-rise [animation-delay:80ms]">
@@ -95,7 +102,7 @@ function Home() {
           <p className="mt-1 text-sm text-muted-foreground">
             {left === 0
               ? "Keep going for bonus XP."
-              : "A few minutes a day builds a native-like accent."}
+              : "Practice a few phrases to reach your daily goal."}
           </p>
         </div>
       </section>
@@ -117,10 +124,10 @@ function Home() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground">
-                  Your level
+                  Your practice level
                 </p>
                 <p className="mt-1 font-display text-xl font-bold">
-                  {assessment.level} · {assessment.score}%
+                  {assessment.level} · {assessment.score}% word match
                 </p>
               </div>
               <Button asChild variant="soft" size="sm">
@@ -128,22 +135,20 @@ function Home() {
               </Button>
             </div>
             <p className="mt-2 text-sm text-muted-foreground">
-              Daily practice is tuned to your{" "}
               {assessment.weakSounds.length
-                ? `${assessment.weakSounds.join(" and ")} sound goals`
-                : "balanced pronunciation"}
-              .
+                ? `Suggested sound drills: ${assessment.weakSounds.join(", ")}.`
+                : "Your plan includes a mix of sounds."}
             </p>
           </>
         ) : (
           <>
-            <p className="font-display text-lg font-bold">Find your English level</p>
+            <p className="font-display text-lg font-bold">Find your starting practice level</p>
             <p className="mt-1 text-sm text-muted-foreground">
               A quick 5-phrase check builds a personalized daily plan.
             </p>
             <Button asChild variant="soft" className="mt-3 w-full">
               <Link to="/assessment">
-                Start pronunciation check <Play />
+                Start speaking check <Play />
               </Link>
             </Button>
           </>
@@ -169,6 +174,22 @@ function Home() {
       </section>
 
       <section className="mt-8">
+        <h2 className="mb-3 flex items-center gap-2 font-display text-xl font-semibold">
+          <Sparkles className="size-5 text-primary" /> Quick sound drills
+        </h2>
+        <div className="flex flex-wrap gap-2">
+          {SOUND_IDS.map((s) => (
+            <Button key={s} asChild variant="chip" size="pill">
+              <Link to="/practice" search={{ sound: s }}>
+                <span className="font-display">{SOUNDS[s].label}</span>
+                <span className="text-xs font-semibold opacity-70">{SOUNDS[s].example}</span>
+              </Link>
+            </Button>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-8">
         <div className="mb-3 flex items-end justify-between">
           <h2 className="font-display text-xl font-semibold">Topics</h2>
           <span className="text-xs font-bold text-muted-foreground">
@@ -188,22 +209,6 @@ function Home() {
               />
             );
           })}
-        </div>
-      </section>
-
-      <section className="mt-8">
-        <h2 className="mb-3 flex items-center gap-2 font-display text-xl font-semibold">
-          <Sparkles className="size-5 text-primary" /> Quick sound drills
-        </h2>
-        <div className="flex flex-wrap gap-2">
-          {SOUND_IDS.map((s) => (
-            <Button key={s} asChild variant="chip" size="pill">
-              <Link to="/practice" search={{ sound: s }}>
-                <span className="font-display">{SOUNDS[s].label}</span>
-                <span className="text-xs font-semibold opacity-70">{SOUNDS[s].example}</span>
-              </Link>
-            </Button>
-          ))}
         </div>
       </section>
     </MobileShell>

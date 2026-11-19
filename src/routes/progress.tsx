@@ -17,9 +17,9 @@ export const Route = createFileRoute("/progress")({
   head: () => ({
     meta: [
       { title: "Your Progress — SpeakUp" },
-      { name: "description", content: "Track your weekly practice, average score, mastered phrases and the sounds to improve." },
+      { name: "description", content: "Track weekly practice, phrase progress, and suggested sound drills." },
       { property: "og:title", content: "Your Progress — SpeakUp" },
-      { property: "og:description", content: "Weekly activity, score trends, weakest sounds and achievement badges." },
+      { property: "og:description", content: "Weekly activity, practice scores, suggested sound drills and achievements." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -59,7 +59,7 @@ function ProgressPage() {
   return (
     <MobileShell>
       <h1 className="font-display text-3xl font-bold animate-rise">Your progress</h1>
-      <p className="text-muted-foreground animate-rise">Small steps, big voice.</p>
+      <p className="text-muted-foreground animate-rise">Review your practice and choose a sound drill.</p>
 
       <div className="mt-5 grid grid-cols-2 gap-3">
         <StatTile icon={<Flame className="fill-flame text-flame" />} value={`${streak}`} label="Day streak" />
@@ -100,7 +100,7 @@ function ProgressPage() {
         </div>
       </Card>
 
-      <Card title="Sounds to improve" subtitle={weak.length ? "Weakest first — drill them!" : "Practice a few phrases to find your weak spots"}>
+      <Card title="Suggested sound drills" subtitle="Percentages reflect transcript matches for words with each target sound.">
         <ul className="space-y-2.5">
           {weak.map((w) => (
             <SoundRow key={w.id} id={w.id} average={w.average} attempts={w.attempts} />
@@ -194,7 +194,7 @@ function SoundRow({ id, average, attempts }: { id: keyof typeof SOUNDS; average:
           <span className="truncate font-bold">
             {s.ipa} <span className="font-semibold text-muted-foreground">· {s.example}</span>
           </span>
-          <span className="ml-2 font-extrabold">{average ?? "–"}</span>
+          <span className="ml-2 font-extrabold">{average === null ? "–" : `${average}%`}</span>
         </div>
         <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
           <div className={cn("h-full rounded-full", tone)} style={{ width: `${average ?? 0}%` }} />

@@ -8,8 +8,8 @@ SpeakUp is a browser-based English speaking practice app. It combines guided pro
 ## Features
 
 - **Adaptive curriculum:** 173 phrases across Beginner, Intermediate, and Advanced levels. The five-line assessment, recent practice scores, weak sounds, and selected learning goals guide daily practice.
-- **Speaking practice:** Browser speech recognition scores how closely recognized words match the prompt. Word cards provide status-specific practice tips. This is transcript matching, not phoneme-level acoustic scoring.
-- **Voice replay:** Phrase practice records a temporary clip in the current page session so learners can replay their own voice. Clips are not uploaded or saved as permanent recordings.
+- **Speaking practice:** Browser speech recognition scores how closely recognized words match the prompt. Feedback marks exact and close matches, flags extra words, and offers suggestions for replay and review. The score reflects the transcript and leaves individual sounds unscored.
+- **Voice replay:** Where browser recording is available, phrase practice pairs the temporary recording with normal and slow examples. Clips are not uploaded or saved as permanent recordings.
 - **AI roleplay:** Practice café, hotel, recruiter, or custom scenarios with a Groq-powered conversation partner. Learners can speak through browser speech recognition or type; recognized speech is editable before sending. Roleplay review gives transcript-based language and task feedback, plus an estimated speaking rate for recorded replies.
 - **Pronunciation dictionary:** Look up arbitrary English words for dictionary-provided phonetic spellings and audio where available, then practice saying the word. Some entries may have multiple variants or missing audio.
 - **Practice your own text:** Rehearse pasted sentences and short scripts with browser recognition and an approximate spelling-based guide.

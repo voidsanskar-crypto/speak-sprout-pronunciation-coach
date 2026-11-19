@@ -4,7 +4,6 @@ import {
   ArrowRight,
   Home,
   Languages,
-  RotateCcw,
   SkipForward,
   Snail,
   Trophy,
@@ -17,8 +16,8 @@ import { Mascot } from "@/components/speakup/Mascot";
 import { MicButton } from "@/components/speakup/MicButton";
 import { MicHelp } from "@/components/speakup/MicHelp";
 import { Waveform } from "@/components/speakup/Waveform";
-import { ScoreGauge, scoreTone } from "@/components/speakup/ScoreGauge";
-import { WordDetail } from "@/components/speakup/WordDetail";
+import { scoreTone } from "@/components/speakup/ScoreGauge";
+import { PracticeFeedback } from "@/components/speakup/PracticeFeedback";
 import { LanguagePicker } from "@/components/speakup/LanguagePicker";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,17 +28,15 @@ import {
 } from "@/hooks/use-progress";
 import { useSpeechRecorder } from "@/hooks/use-speech-recorder";
 import { usePhraseTranslation } from "@/hooks/use-translations";
-import { fireConfetti, shouldCelebrate } from "@/lib/celebrate";
-import { displayWords, ipaWords, type Phrase } from "@/lib/phrases";
+import { fireConfetti } from "@/lib/celebrate";
+import type { Phrase } from "@/lib/phrases";
 import { xpForScore } from "@/lib/progress";
-import { scoreBest, type ScoreResult, type WordResult } from "@/lib/scoring";
+import { scoreBest, type ScoreResult } from "@/lib/scoring";
 import { buildQueue } from "@/lib/session";
 import { SOUND_IDS, SOUNDS, type SoundId } from "@/lib/sounds";
 import { canSpeak, speak, stopSpeaking } from "@/lib/speech";
 import { getTopic, TOPICS, type TopicId } from "@/lib/topics";
 import { cn } from "@/lib/utils";
-import { azurePronunciationAssessment, type PronunciationAssessment } from "@/lib/ai/groq.functions";
-import { recordingUrlToWavBase64 } from "@/lib/audio";
 
 interface PracticeSearch {
   topic?: TopicId | undefined;
@@ -60,12 +57,12 @@ export const Route = createFileRoute("/practice")({
       {
         name: "description",
         content:
-          "Listen to native-style audio, record yourself and get instant word-by-word pronunciation feedback.",
+          "Listen to native-style audio, record yourself and get instant word-match feedback.",
       },
       { property: "og:title", content: "Practice — SpeakUp" },
       {
         property: "og:description",
-        content: "Listen, speak and get instant word-by-word pronunciation feedback.",
+        content: "Listen, speak and see how the browser transcript matches the phrase.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -84,8 +81,6 @@ function Practice() {
   const [stage, setStage] = useState<Stage>("practice");
   const [result, setResult] = useState<ScoreResult | null>(null);
   const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
-  const [acousticAssessment, setAcousticAssessment] = useState<PronunciationAssessment | null>(null);
-  const [assessmentState, setAssessmentState] = useState<"idle" | "loading" | "ready" | "unavailable">("idle");
   const [sessionScores, setSessionScores] = useState<number[]>([]);
   useEffect(() => {
     setQueue(buildQueue({ topic, sound }, getProgressSnapshot()));
@@ -93,8 +88,6 @@ function Practice() {
     setStage("practice");
     setResult(null);
     setRecordingUrl(null);
-    setAcousticAssessment(null);
-    setAssessmentState("idle");
     setSessionScores([]);
   }, [topic, sound]);
 
@@ -115,11 +108,8 @@ function Practice() {
 
   const next = useCallback(() => {
     stopSpeaking();
-    if (recordingUrl) URL.revokeObjectURL(recordingUrl);
     setRecordingUrl(null);
     setResult(null);
-    setAcousticAssessment(null);
-    setAssessmentState("idle");
     if (!queue) return;
     if (index + 1 >= queue.length) {
       setStage("summary");
@@ -127,7 +117,7 @@ function Practice() {
       setIndex((i) => i + 1);
       setStage("practice");
     }
-  }, [index, queue, recordingUrl]);
+  }, [index, queue]);
 
   const handleResult = useCallback(
     (alts: string[], clipUrl?: string) => {
@@ -136,36 +126,8 @@ function Practice() {
       setResult(r);
       setRecordingUrl(clipUrl ?? null);
       setStage("feedback");
-      setAcousticAssessment(null);
-      if (!clipUrl) {
-        recordAttempt({ phraseId: phrase.id, score: r.score, words: r.words });
-        setSessionScores((s) => [...s, r.score]);
-        setAssessmentState("unavailable");
-        return;
-      }
-      setAssessmentState("loading");
-      void (async () => {
-        try {
-          const audioBase64 = await recordingUrlToWavBase64(clipUrl);
-          const response = await azurePronunciationAssessment({ data: { referenceText: phrase.text, audioBase64 } });
-          if (response.ok) {
-            const score = response.assessment.pronunciationScore ?? response.assessment.accuracyScore ?? r.score;
-            setAcousticAssessment(response.assessment);
-            recordAttempt({ phraseId: phrase.id, score, words: r.words });
-            setSessionScores((s) => [...s, score]);
-            setAssessmentState("ready");
-          } else {
-            recordAttempt({ phraseId: phrase.id, score: r.score, words: r.words });
-            setSessionScores((s) => [...s, r.score]);
-            setAssessmentState("unavailable");
-          }
-        } catch (error) {
-          console.error("Azure pronunciation assessment unavailable", error);
-          recordAttempt({ phraseId: phrase.id, score: r.score, words: r.words });
-          setSessionScores((s) => [...s, r.score]);
-          setAssessmentState("unavailable");
-        }
-      })();
+      recordAttempt({ phraseId: phrase.id, score: r.score, words: r.words });
+      setSessionScores((scores) => [...scores, r.score]);
     },
     [phrase],
   );
@@ -203,19 +165,14 @@ function Practice() {
       ) : stage === "summary" ? (
         <Summary scores={sessionScores} />
       ) : stage === "feedback" && result ? (
-        <Feedback
+        <PracticeFeedback
           key={`${phrase.id}-${sessionScores.length}`}
           phrase={phrase}
           result={result}
           recordingUrl={recordingUrl}
-          acousticAssessment={acousticAssessment}
-          assessmentState={assessmentState}
           onRetry={() => {
             setResult(null);
-            if (recordingUrl) URL.revokeObjectURL(recordingUrl);
             setRecordingUrl(null);
-            setAcousticAssessment(null);
-            setAssessmentState("idle");
             setStage("practice");
           }}
           onContinue={next}
@@ -452,149 +409,6 @@ function PracticeCard({
   );
 }
 
-/* ---------------- Feedback ---------------- */
-
-const chipClass: Record<WordResult["status"], string> = {
-  correct: "bg-success-soft text-success border-success/30",
-  close: "bg-warning-soft text-warning border-warning/40",
-  missed: "bg-danger-soft text-danger border-danger/30",
-};
-
-function Feedback({
-  phrase,
-  result,
-  recordingUrl,
-  acousticAssessment,
-  assessmentState,
-  onRetry,
-  onContinue,
-  isLast,
-}: {
-  phrase: Phrase;
-  result: ScoreResult;
-  recordingUrl: string | null;
-  acousticAssessment: PronunciationAssessment | null;
-  assessmentState: "idle" | "loading" | "ready" | "unavailable";
-  onRetry: () => void;
-  onContinue: () => void;
-  isLast: boolean;
-}) {
-  const words = displayWords(phrase.text);
-  const ipas = ipaWords(phrase);
-  const [selected, setSelected] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (shouldCelebrate(result.score)) {
-      const t = setTimeout(() => void fireConfetti(), 700);
-      return () => clearTimeout(t);
-    }
-    return undefined;
-  }, [result.score]);
-
-  const counts = {
-    correct: result.words.filter((w) => w.status === "correct").length,
-    close: result.words.filter((w) => w.status === "close").length,
-    missed: result.words.filter((w) => w.status === "missed").length,
-  };
-  const coachScore = acousticAssessment?.pronunciationScore ?? acousticAssessment?.accuracyScore ?? result.score;
-
-  return (
-    <div className="mt-6 flex flex-col items-center">
-      <div className="relative w-full rounded-[2rem] bg-card p-6 pt-8 shadow-card animate-pop-in">
-        <Mascot
-          mood={coachScore >= 75 ? "cheer" : "wave"}
-          className="absolute right-2 top-2 w-20 animate-float"
-        />
-        <ScoreGauge score={coachScore} caption={acousticAssessment ? "Azure acoustic score" : "word match"} />
-        {assessmentState === "loading" && <p className="mt-3 text-center text-sm text-muted-foreground">Analyzing your recorded sounds…</p>}
-        {acousticAssessment && <div className="mt-4 grid grid-cols-2 gap-2 text-center text-sm sm:grid-cols-4">
-          {[['Accuracy', acousticAssessment.accuracyScore], ['Fluency', acousticAssessment.fluencyScore], ['Prosody', acousticAssessment.prosodyScore], ['Completeness', acousticAssessment.completenessScore]].map(([label, value]) => <div key={String(label)} className="rounded-xl bg-muted px-2 py-2"><p className="text-xs text-muted-foreground">{label}</p><p className="font-bold">{value === null ? '—' : `${value}%`}</p></div>)}
-        </div>}
-        {acousticAssessment && acousticAssessment.words.some((word) => word.phonemes.some((phoneme) => phoneme.accuracy !== null && phoneme.accuracy < 75)) && <div className="mt-4 rounded-2xl border border-warning/30 bg-warning-soft p-4 text-sm"><p className="font-bold">Sounds to practice</p><div className="mt-2 flex flex-wrap gap-2">{acousticAssessment.words.flatMap((word) => word.phonemes.filter((phoneme) => phoneme.accuracy !== null && phoneme.accuracy < 75).map((phoneme, i) => <span key={`${word.word}-${phoneme.phoneme}-${i}`} className="rounded-lg bg-card px-2 py-1">{word.word}: /{phoneme.phoneme}/ {phoneme.likelySound && phoneme.likelySound !== phoneme.phoneme ? `→ /${phoneme.likelySound}/` : ''} ({phoneme.accuracy}%)</span>))}</div></div>}
-        <div className="mt-4 rounded-2xl bg-primary-soft p-4 text-sm leading-relaxed">
-          <p className="font-bold">Your practice feedback</p>
-          <p className="mt-1">{result.score >= 85
-            ? `The speech recognizer matched ${counts.correct} of ${result.words.length} target words clearly. Keep that pace, then replay your recording and compare your stress and rhythm with the example.`
-            : result.score >= 55
-              ? `The recognizer matched ${counts.correct} words, marked ${counts.close} as close, and missed ${counts.missed}. Tap the highlighted words for specific mouth-position tips, then retry the whole sentence.`
-              : `The recognizer matched ${counts.correct} words and missed ${counts.missed}. Try listening to the example once slowly, practice the missed words individually, and record again in a quiet place.`}</p>
-          <p className="mt-2 text-xs text-muted-foreground">{acousticAssessment ? "Azure evaluated the recorded audio against the prompt. Phoneme and prosody scores are automated estimates and can vary with accent, microphone, and background noise." : "This fallback score compares recognized words with the prompt. It cannot verify that each sound was pronounced correctly."}</p>
-        </div>
-        <div className="mt-2 flex justify-center">
-          <span className="inline-flex items-center gap-1 rounded-full bg-warning-soft px-3 py-1 text-sm font-extrabold">
-            <Zap className="size-4 fill-sun text-sun" /> +{xpForScore(coachScore)} XP
-          </span>
-        </div>
-
-        <p className="mt-6 text-center text-xs font-extrabold uppercase tracking-widest text-muted-foreground">
-          Tap a word for tips
-        </p>
-        <p className="mb-3 text-center text-xs text-muted-foreground">Recognized words from speech-to-text (separate from the acoustic score above).</p>
-        <div className="mt-3 flex flex-wrap justify-center gap-2">
-          {words.map((w, i) => {
-            const r = result.words[i];
-            if (!r) return null;
-            return (
-              <button
-                key={i}
-                onClick={() => setSelected(i)}
-                className={cn(
-                  "rounded-2xl border-2 px-3 py-1.5 font-display text-xl font-semibold transition-transform hover:-translate-y-0.5 active:scale-95 animate-rise",
-                  chipClass[r.status],
-                )}
-                style={{ animationDelay: `${300 + i * 60}ms` }}
-              >
-                {w}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="mt-4 flex justify-center gap-4 text-xs font-bold text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <i className="size-2.5 rounded-full bg-success" /> {counts.correct} correct
-          </span>
-          <span className="flex items-center gap-1">
-            <i className="size-2.5 rounded-full bg-warning" /> {counts.close} close
-          </span>
-          <span className="flex items-center gap-1">
-            <i className="size-2.5 rounded-full bg-danger" /> {counts.missed} missed
-          </span>
-        </div>
-
-        <p className="mt-5 rounded-2xl bg-muted px-4 py-3 text-center text-sm">
-          <span className="font-bold text-muted-foreground">We heard: </span>
-          <span className="font-semibold">“{result.transcript || "…"}”</span>
-        </p>
-        {recordingUrl && (
-          <div className="mt-3 flex justify-center">
-            <Button variant="soft" size="pill" onClick={() => void new Audio(recordingUrl).play()}>
-              <Volume2 /> Listen to yourself
-            </Button>
-          </div>
-        )}
-      </div>
-
-      <div className="mt-6 grid w-full grid-cols-2 gap-3">
-        <Button variant="soft" size="xl" onClick={onRetry}>
-          <RotateCcw /> Try again
-        </Button>
-        <Button variant="hero" size="xl" onClick={onContinue} disabled={assessmentState === "loading"}>
-          {isLast ? "Finish" : "Continue"} <ArrowRight />
-        </Button>
-      </div>
-
-      <WordDetail
-        open={selected !== null}
-        onOpenChange={(o) => !o && setSelected(null)}
-        word={selected !== null ? (result.words[selected] ?? null) : null}
-        display={selected !== null ? (words[selected] ?? "") : ""}
-        ipa={selected !== null ? (ipas[selected] ?? "") : ""}
-      />
-    </div>
-  );
-}
-
 /* ---------------- Summary ---------------- */
 
 function Summary({ scores }: { scores: number[] }) {
@@ -609,14 +423,14 @@ function Summary({ scores }: { scores: number[] }) {
       <h1 className="mt-2 font-display text-3xl font-bold">Session complete!</h1>
       <p className="mt-1 text-muted-foreground">
         {scores.length
-          ? "Every phrase brings you closer to sounding natural."
+          ? "Your practice was saved on this device."
           : "You skipped this round — try speaking next time!"}
       </p>
       <div className="mt-6 grid w-full grid-cols-3 gap-3">
-        <Stat label="Phrases" value={String(scores.length)} />
+        <Stat label="Attempts" value={String(scores.length)} />
         <Stat
-          label="Avg score"
-          value={scores.length ? String(avg) : "–"}
+          label="Avg word match"
+          value={scores.length ? `${avg}%` : "–"}
           tone={scores.length ? scoreTone(avg) : undefined}
         />
         <Stat label="XP earned" value={`+${xp}`} />

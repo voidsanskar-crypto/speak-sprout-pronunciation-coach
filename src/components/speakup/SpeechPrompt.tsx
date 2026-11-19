@@ -14,7 +14,7 @@ export function SpeechPrompt({
   onScore,
 }: {
   text: string;
-  ipa?: string;
+  ipa?: string | undefined;
   onScore: (result: ScoreResult) => void;
 }) {
   const recorder = useSpeechRecorder((alts) => onScore(scoreBest(text, alts)));

@@ -12,18 +12,31 @@ export interface ScoreResult {
   score: number; // 0..100
   words: WordResult[];
   transcript: string;
+  extraWordCount: number;
 }
 
 export const CORRECT_THRESHOLD = 0.8;
 export const CLOSE_THRESHOLD = 0.5;
 
 const NUMBER_WORDS: Record<string, string> = {
-  "0": "zero", "1": "one", "2": "two", "3": "three", "4": "four", "5": "five",
-  "6": "six", "7": "seven", "8": "eight", "9": "nine", "10": "ten",
+  "0": "zero",
+  "1": "one",
+  "2": "two",
+  "3": "three",
+  "4": "four",
+  "5": "five",
+  "6": "six",
+  "7": "seven",
+  "8": "eight",
+  "9": "nine",
+  "10": "ten",
 };
 
 export function normalizeWord(word: string): string {
-  const w = word.toLowerCase().replace(/[’']/g, "").replace(/[^a-z0-9]/g, "");
+  const w = word
+    .toLowerCase()
+    .replace(/[’']/g, "")
+    .replace(/[^a-z0-9]/g, "");
   return NUMBER_WORDS[w] ?? w;
 }
 
@@ -50,27 +63,26 @@ export function levenshtein(a: string, b: string): number {
   return prev[b.length]!;
 }
 
-/** Rough sound-alike key so spelling variants ("color"/"colour") still match. */
-function phoneticKey(w: string): string {
-  return w
-    .replace(/ph/g, "f")
-    .replace(/ck/g, "k")
-    .replace(/c(?=[eiy])/g, "s")
-    .replace(/c/g, "k")
-    .replace(/q/g, "k")
-    .replace(/x/g, "ks")
-    .replace(/z/g, "s")
-    .replace(/(.)\1+/g, "$1")
-    .replace(/(?!^)[aeiouy]+/g, "a");
-}
+// A small set of spelling variants that speech recognizers commonly interchange.
+const SPELLING_VARIANTS: ReadonlyMap<string, string> = new Map([
+  ["colour", "color"],
+  ["favourite", "favorite"],
+  ["flavour", "flavor"],
+  ["centre", "center"],
+  ["theatre", "theater"],
+  ["travelling", "traveling"],
+  ["travelled", "traveled"],
+]);
 
 export function wordSimilarity(a: string, b: string): number {
   if (!a || !b) return 0;
-  if (a === b) return 1;
-  const ratio = (x: string, y: string) => 1 - levenshtein(x, y) / Math.max(x.length, y.length);
-  const direct = ratio(a, b);
-  const phon = ratio(phoneticKey(a), phoneticKey(b)) * 0.9;
-  return Math.max(0, Math.min(1, Math.max(direct, phon)));
+  const target = SPELLING_VARIANTS.get(a) ?? a;
+  const heard = SPELLING_VARIANTS.get(b) ?? b;
+  if (target === heard) return 1;
+
+  const similarity = 1 - levenshtein(target, heard) / Math.max(target.length, heard.length);
+  // Similar spelling can earn partial credit but should never show as a match.
+  return Math.min(similarity, 0.75);
 }
 
 export function statusFor(similarity: number): WordStatus {
@@ -144,7 +156,12 @@ export function scoreTranscript(targetText: string, transcript: string): ScoreRe
 
   const total = words.reduce((s, w) => s + w.similarity, 0);
   const raw = n === 0 ? 0 : (total / (n + extras * 0.25)) * 100;
-  return { score: Math.round(Math.max(0, Math.min(100, raw))), words, transcript };
+  return {
+    score: Math.round(Math.max(0, Math.min(100, raw))),
+    words,
+    transcript,
+    extraWordCount: extras,
+  };
 }
 
 /** Pick the recognition alternative that scores best against the target. */

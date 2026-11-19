@@ -36,7 +36,7 @@ function Assessment() {
         </Button>
         <div className="flex-1">
           <p className="text-xs font-extrabold uppercase tracking-widest text-muted-foreground">
-            Pronunciation check
+            Speaking check
           </p>
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
             <div
@@ -51,15 +51,15 @@ function Assessment() {
         <>
           <h1 className="mt-7 font-display text-3xl font-bold">Find your starting level</h1>
           <p className="mb-5 mt-2 text-sm text-muted-foreground">
-            Say five short lines aloud. We’ll build a daily plan around the sounds that need the
-            most practice.
+            Say five lines aloud. We’ll use the browser’s word matches to choose a starting level
+            and suggest drills.
           </p>
           {phrase && (
             <SpeechPrompt key={index} text={phrase.text} ipa={phrase.ipa} onScore={complete} />
           )}
           {last && (
             <div className="mt-4 rounded-2xl bg-primary-soft p-4">
-              <p className="font-bold">Phrase score: {last.score}%</p>
+              <p className="font-bold">Word match: {last.score}%</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 We heard: “{last.transcript || "No clear speech"}”
               </p>
@@ -73,14 +73,14 @@ function Assessment() {
       ) : (
         <div className="mt-10 rounded-[2rem] bg-card p-7 text-center shadow-card">
           <p className="text-sm font-extrabold uppercase tracking-widest text-muted-foreground">
-            Your starting level
+            Your starting practice level
           </p>
           <p className="mt-3 font-display text-4xl font-bold">{result.level}</p>
-          <p className="mt-2 text-2xl font-bold text-primary">{result.score}%</p>
+          <p className="mt-2 text-2xl font-bold text-primary">{result.score}% word match</p>
           <p className="mt-4 text-sm text-muted-foreground">
             {result.weakSounds.length
               ? `Your daily practice will focus more on ${result.weakSounds.join(", ")} sounds.`
-              : "Your sounds are balanced. Daily practice will keep building fluency."}
+              : "Your daily plan includes a mix of sound drills."}
           </p>
           <div className="mt-6 grid gap-3">
             <Button asChild variant="hero" size="xl">
