@@ -23,7 +23,7 @@ export async function translatePhrasesServer(
   language: string,
   phrases: { id: string; text: string }[],
 ): Promise<TranslateResult> {
-  const apiKey = process.env.LOVABLE_API_KEY;
+  const apiKey = process.env["LOVABLE_API_KEY"];
   if (!apiKey) return { ok: false, error: "Translations aren't set up yet." };
 
   const runIdFetch = createLovableAiGatewayRunIdFetch();
@@ -42,7 +42,7 @@ export async function translatePhrasesServer(
       messages: [
         {
           role: "user",
-          content: `Target language: ${language}\n\nPhrases:\n${phrases.map((p) => `${p.id}: ${p.text}`).join("\n")}`,
+          content: `Target language: ${language}\n\nPhrases (id: text):\n${phrases.map((p) => `${p.id}: ${p.text}`).join("\n")}`,
         },
       ],
       output: Output.object({ schema }),

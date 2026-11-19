@@ -7,11 +7,11 @@ export interface SpeechRecognitionAlternativeLike {
 export interface SpeechRecognitionResultLike {
   isFinal: boolean;
   length: number;
-  [index: number]: SpeechRecognitionAlternativeLike;
+  [index: number]: SpeechRecognitionAlternativeLike | undefined;
 }
 export interface SpeechRecognitionEventLike {
   resultIndex: number;
-  results: { length: number; [index: number]: SpeechRecognitionResultLike };
+  results: { length: number; [index: number]: SpeechRecognitionResultLike | undefined };
 }
 export interface SpeechRecognitionLike {
   lang: string;

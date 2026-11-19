@@ -42,6 +42,11 @@ function subscribe(listener: () => void) {
   };
 }
 
+/** Current saved progress (browser only). */
+export function getProgressSnapshot(): ProgressState {
+  return read();
+}
+
 export function useProgress(): ProgressState {
   return useSyncExternalStore(subscribe, read, () => DEFAULT_PROGRESS);
 }

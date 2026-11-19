@@ -52,7 +52,7 @@ export function toDateKey(d: Date): string {
 }
 
 export function addDays(key: string, delta: number): string {
-  const [y, m, d] = key.split("-").map(Number);
+  const [y = 2000, m = 1, d = 1] = key.split("-").map(Number);
   const date = new Date(y, m - 1, d);
   date.setDate(date.getDate() + delta);
   return toDateKey(date);

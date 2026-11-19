@@ -43,11 +43,11 @@ export function levenshtein(a: string, b: string): number {
     const cur = [i];
     for (let j = 1; j <= b.length; j++) {
       const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost);
+      cur[j] = Math.min(prev[j]! + 1, cur[j - 1]! + 1, prev[j - 1]! + cost);
     }
     prev = cur;
   }
-  return prev[b.length];
+  return prev[b.length]!;
 }
 
 /** Rough sound-alike key so spelling variants ("color"/"colour") still match. */
@@ -93,27 +93,27 @@ export function scoreTranscript(targetText: string, transcript: string): ScoreRe
   const cost: number[][] = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
   const move: number[][] = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
   for (let i = 1; i <= n; i++) {
-    cost[i][0] = i * GAP;
-    move[i][0] = 1;
+    cost[i]![0]! = i * GAP;
+    move[i]![0]! = 1;
   }
   for (let j = 1; j <= m; j++) {
-    cost[0][j] = j * GAP * 0.6;
-    move[0][j] = 2;
+    cost[0]![j]! = j * GAP * 0.6;
+    move[0]![j]! = 2;
   }
   for (let i = 1; i <= n; i++) {
     for (let j = 1; j <= m; j++) {
-      const sub = cost[i - 1][j - 1] + (1 - wordSimilarity(target[i - 1], heard[j - 1])) * 1.5;
-      const del = cost[i - 1][j] + GAP; // target word missed
-      const ins = cost[i][j - 1] + GAP * 0.6; // extra heard word
+      const sub = cost[i - 1]![j - 1]! + (1 - wordSimilarity(target[i - 1]!, heard[j - 1]!)) * 1.5;
+      const del = cost[i - 1]![j]! + GAP; // target word missed
+      const ins = cost[i]![j - 1]! + GAP * 0.6; // extra heard word
       if (sub <= del && sub <= ins) {
-        cost[i][j] = sub;
-        move[i][j] = 0;
+        cost[i]![j]! = sub;
+        move[i]![j]! = 0;
       } else if (del <= ins) {
-        cost[i][j] = del;
-        move[i][j] = 1;
+        cost[i]![j]! = del;
+        move[i]![j]! = 1;
       } else {
-        cost[i][j] = ins;
-        move[i][j] = 2;
+        cost[i]![j]! = ins;
+        move[i]![j]! = 2;
       }
     }
   }
@@ -123,9 +123,9 @@ export function scoreTranscript(targetText: string, transcript: string): ScoreRe
   let i = n;
   let j = m;
   while (i > 0 || j > 0) {
-    const mv = i === 0 ? 2 : j === 0 ? 1 : move[i][j];
+    const mv = i === 0 ? 2 : j === 0 ? 1 : move[i]![j]!;
     if (mv === 0) {
-      matched[i - 1] = heard[j - 1];
+      matched[i - 1] = heard[j - 1]!;
       i--;
       j--;
     } else if (mv === 1) {
@@ -137,7 +137,7 @@ export function scoreTranscript(targetText: string, transcript: string): ScoreRe
   }
 
   const words: WordResult[] = target.map((t, idx) => {
-    const h = matched[idx];
+    const h = matched[idx] ?? null;
     const similarity = h ? wordSimilarity(t, h) : 0;
     return { index: idx, target: t, heard: h, similarity, status: statusFor(similarity) };
   });

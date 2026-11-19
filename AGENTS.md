@@ -28,3 +28,9 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## Project rules (SpeakUp)
+- All learner progress lives in localStorage via `src/hooks/use-progress.ts` (useSyncExternalStore); pure rules live in `src/lib/progress.ts` so they stay testable. No sign-in or database by design.
+- Speech uses browser APIs only (SpeechSynthesis for audio, Web Speech recognition for the mic) in `src/lib/speech.ts` and `src/hooks/use-speech-recorder.ts`; scoring is local fuzzy matching in `src/lib/scoring.ts`.
+- Each seed phrase stores IPA as one space-separated token per word; `src/lib/progress.test.ts` enforces the alignment.
+- Translations come from Lovable AI via the `translatePhrases` server function, one phrase at a time, cached per language in localStorage — so any language works without hand-written copies.

@@ -21,7 +21,7 @@ export function Waveform({ active, analyser, speaking }: { active: boolean; anal
         let level: number;
         if (analyser && data) {
           const bin = Math.floor(2 + (i / BARS) * (data.length * 0.55));
-          level = data[bin] / 255;
+          level = (data[bin] ?? 0) / 255;
         } else {
           const base = speakingRef.current ? 0.55 : 0.12;
           level = base * (0.5 + 0.5 * Math.abs(Math.sin(t / 180 + i * 0.7))) + Math.random() * (speakingRef.current ? 0.3 : 0.05);

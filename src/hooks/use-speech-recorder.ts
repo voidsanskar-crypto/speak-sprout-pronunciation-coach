@@ -113,9 +113,13 @@ export function useSpeechRecorder(onResult: (alternatives: string[]) => void) {
       const alts: string[] = [];
       for (let i = 0; i < e.results.length; i++) {
         const r = e.results[i];
+        if (!r) continue;
         text += r[0]?.transcript ?? "";
         if (r.isFinal) {
-          for (let k = 0; k < r.length; k++) alts.push(r[k].transcript);
+          for (let k = 0; k < r.length; k++) {
+            const alt = r[k];
+            if (alt) alts.push(alt.transcript);
+          }
         }
       }
       latest = text.trim();
