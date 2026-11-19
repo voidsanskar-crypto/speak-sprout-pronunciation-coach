@@ -21,7 +21,12 @@ import { ScoreGauge, scoreTone } from "@/components/speakup/ScoreGauge";
 import { WordDetail } from "@/components/speakup/WordDetail";
 import { LanguagePicker } from "@/components/speakup/LanguagePicker";
 import { Button } from "@/components/ui/button";
-import { getProgressSnapshot, recordAttempt, setTranslationLanguage, useProgress } from "@/hooks/use-progress";
+import {
+  getProgressSnapshot,
+  recordAttempt,
+  setTranslationLanguage,
+  useProgress,
+} from "@/hooks/use-progress";
 import { useSpeechRecorder } from "@/hooks/use-speech-recorder";
 import { usePhraseTranslation } from "@/hooks/use-translations";
 import { fireConfetti, shouldCelebrate } from "@/lib/celebrate";
@@ -50,9 +55,16 @@ export const Route = createFileRoute("/practice")({
   head: () => ({
     meta: [
       { title: "Practice — SpeakUp" },
-      { name: "description", content: "Listen to native-style audio, record yourself and get instant word-by-word pronunciation feedback." },
+      {
+        name: "description",
+        content:
+          "Listen to native-style audio, record yourself and get instant word-by-word pronunciation feedback.",
+      },
       { property: "og:title", content: "Practice — SpeakUp" },
-      { property: "og:description", content: "Listen, speak and get instant word-by-word pronunciation feedback." },
+      {
+        property: "og:description",
+        content: "Listen, speak and get instant word-by-word pronunciation feedback.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -69,22 +81,36 @@ function Practice() {
   const [index, setIndex] = useState(0);
   const [stage, setStage] = useState<Stage>("practice");
   const [result, setResult] = useState<ScoreResult | null>(null);
+  const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
   const [sessionScores, setSessionScores] = useState<number[]>([]);
   useEffect(() => {
     setQueue(buildQueue({ topic, sound }, getProgressSnapshot()));
     setIndex(0);
     setStage("practice");
     setResult(null);
+    setRecordingUrl(null);
     setSessionScores([]);
   }, [topic, sound]);
 
-  useEffect(() => () => stopSpeaking(), []);
+  useEffect(
+    () => () => {
+      stopSpeaking();
+      if (recordingUrl) URL.revokeObjectURL(recordingUrl);
+    },
+    [recordingUrl],
+  );
 
-  const title = sound ? `${SOUNDS[sound].label} sound drill` : topic ? getTopic(topic)?.name ?? "Practice" : "Daily practice";
+  const title = sound
+    ? `${SOUNDS[sound].label} sound drill`
+    : topic
+      ? (getTopic(topic)?.name ?? "Practice")
+      : "Daily practice";
   const phrase = queue?.[index];
 
   const next = useCallback(() => {
     stopSpeaking();
+    if (recordingUrl) URL.revokeObjectURL(recordingUrl);
+    setRecordingUrl(null);
     setResult(null);
     if (!queue) return;
     if (index + 1 >= queue.length) {
@@ -93,15 +119,16 @@ function Practice() {
       setIndex((i) => i + 1);
       setStage("practice");
     }
-  }, [index, queue]);
+  }, [index, queue, recordingUrl]);
 
   const handleResult = useCallback(
-    (alts: string[]) => {
+    (alts: string[], recordingUrl?: string) => {
       if (!phrase) return;
       const r = scoreBest(phrase.text, alts);
       recordAttempt({ phraseId: phrase.id, score: r.score, words: r.words });
       setSessionScores((s) => [...s, r.score]);
       setResult(r);
+      setRecordingUrl(recordingUrl ?? null);
       setStage("feedback");
     },
     [phrase],
@@ -116,11 +143,17 @@ function Practice() {
           </Link>
         </Button>
         <div className="flex-1">
-          <p className="text-xs font-extrabold uppercase tracking-widest text-muted-foreground">{title}</p>
+          <p className="text-xs font-extrabold uppercase tracking-widest text-muted-foreground">
+            {title}
+          </p>
           <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-muted">
             <div
               className="h-full rounded-full bg-gradient-hero transition-[width] duration-500"
-              style={{ width: queue ? `${((stage === "summary" ? queue.length : index + (stage === "feedback" ? 1 : 0)) / queue.length) * 100}%` : "0%" }}
+              style={{
+                width: queue
+                  ? `${((stage === "summary" ? queue.length : index + (stage === "feedback" ? 1 : 0)) / queue.length) * 100}%`
+                  : "0%",
+              }}
             />
           </div>
         </div>
@@ -138,8 +171,11 @@ function Practice() {
           key={`${phrase.id}-${sessionScores.length}`}
           phrase={phrase}
           result={result}
+          recordingUrl={recordingUrl}
           onRetry={() => {
             setResult(null);
+            if (recordingUrl) URL.revokeObjectURL(recordingUrl);
+            setRecordingUrl(null);
             setStage("practice");
           }}
           onContinue={next}
@@ -168,7 +204,7 @@ function PracticeCard({
 }: {
   phrase: Phrase;
   language: string | null;
-  onResult: (alts: string[]) => void;
+  onResult: (alts: string[], recordingUrl?: string) => void;
   onNext: () => void;
 }) {
   const recorder = useSpeechRecorder(onResult);
@@ -213,7 +249,9 @@ function PracticeCard({
           startX.current === null && "duration-300",
           leaving && "-translate-x-[120%] opacity-0",
         )}
-        style={!leaving && dx ? { transform: `translateX(${dx}px) rotate(${dx / 30}deg)` } : undefined}
+        style={
+          !leaving && dx ? { transform: `translateX(${dx}px) rotate(${dx / 30}deg)` } : undefined
+        }
         onPointerDown={(e) => {
           if ((e.target as HTMLElement).closest("button")) return;
           startX.current = e.clientX;
@@ -239,7 +277,9 @@ function PracticeCard({
             onClick={toggleTranslation}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-extrabold transition-colors",
-              showTr ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-primary-soft",
+              showTr
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground hover:bg-primary-soft",
             )}
           >
             <Languages className="size-4" /> {showTr ? "Hide" : "Translate"}
@@ -252,22 +292,46 @@ function PracticeCard({
         {showTr && language && (
           <div className="mt-4 rounded-2xl bg-primary-soft px-4 py-3 animate-rise">
             {translation.isLoading ? (
-              <p className="animate-pulse text-sm font-semibold text-muted-foreground">Translating into {language}…</p>
+              <p className="animate-pulse text-sm font-semibold text-muted-foreground">
+                Translating into {language}…
+              </p>
             ) : translation.isError ? (
-              <p className="text-sm font-semibold text-danger">{(translation.error as Error).message}</p>
+              <p className="text-sm font-semibold text-danger">
+                {(translation.error as Error).message}
+              </p>
             ) : (
               <p className="text-lg font-semibold">{translation.data || "—"}</p>
             )}
-            <button className="mt-1 text-xs font-bold text-primary underline-offset-2 hover:underline" onClick={() => setPickerOpen(true)}>
+            <button
+              className="mt-1 text-xs font-bold text-primary underline-offset-2 hover:underline"
+              onClick={() => setPickerOpen(true)}
+            >
               {language} · change
             </button>
           </div>
         )}
 
         <div className="mt-6 flex gap-2">
-          <Button variant="mint" size="pill" className="flex-1" onClick={listen} disabled={listening}>
-            <Volume2 className={cn(playing && "animate-wiggle")} /> {playing ? "Playing…" : "Listen"}
+          <Button
+            variant="mint"
+            size="pill"
+            className="flex-1"
+            onClick={listen}
+            disabled={listening}
+          >
+            <Volume2 className={cn(playing && "animate-wiggle")} />{" "}
+            {playing ? "Playing…" : "Listen"}
           </Button>
+          {recorder.audioUrl && (
+            <Button
+              variant="soft"
+              size="pill"
+              className="flex-1"
+              onClick={() => void new Audio(recorder.audioUrl!).play()}
+            >
+              <Volume2 /> Listen to yourself
+            </Button>
+          )}
           <Button
             variant={slow ? "chip" : "soft"}
             size="pill"
@@ -280,7 +344,9 @@ function PracticeCard({
         </div>
       </div>
 
-      <p className="mt-2 text-xs font-semibold text-muted-foreground">Swipe left or tap Next to skip</p>
+      <p className="mt-2 text-xs font-semibold text-muted-foreground">
+        Swipe left or tap Next to skip
+      </p>
 
       <div className="mt-5 w-full">
         {recorder.error ? (
@@ -294,9 +360,24 @@ function PracticeCard({
           />
         ) : (
           <div className="flex min-h-20 flex-col items-center justify-center">
-            <Waveform active={listening} analyser={recorder.analyser} speaking={recorder.speaking} />
-            <p className={cn("mt-1 min-h-6 text-center text-base font-semibold", recorder.interim ? "text-foreground" : "text-muted-foreground")}>
-              {recorder.interim ? `“${recorder.interim}”` : listening ? "Listening… say the phrase" : recorder.status === "requesting" ? "Getting the mic ready…" : "Tap the mic and read the phrase aloud"}
+            <Waveform
+              active={listening}
+              analyser={recorder.analyser}
+              speaking={recorder.speaking}
+            />
+            <p
+              className={cn(
+                "mt-1 min-h-6 text-center text-base font-semibold",
+                recorder.interim ? "text-foreground" : "text-muted-foreground",
+              )}
+            >
+              {recorder.interim
+                ? `“${recorder.interim}”`
+                : listening
+                  ? "Listening… say the phrase"
+                  : recorder.status === "requesting"
+                    ? "Getting the mic ready…"
+                    : "Tap the mic and read the phrase aloud"}
             </p>
           </div>
         )}
@@ -305,7 +386,11 @@ function PracticeCard({
       <div className="mt-4 grid w-full grid-cols-3 items-center">
         <span />
         <div className="flex justify-center">
-          <MicButton status={recorder.status} onStart={() => void recorder.start()} onStop={recorder.stop} />
+          <MicButton
+            status={recorder.status}
+            onStart={() => void recorder.start()}
+            onStop={recorder.stop}
+          />
         </div>
         <div className="flex justify-end">
           <Button variant="soft" size="pill" onClick={skip} disabled={listening}>
@@ -338,12 +423,14 @@ const chipClass: Record<WordResult["status"], string> = {
 function Feedback({
   phrase,
   result,
+  recordingUrl,
   onRetry,
   onContinue,
   isLast,
 }: {
   phrase: Phrase;
   result: ScoreResult;
+  recordingUrl: string | null;
   onRetry: () => void;
   onContinue: () => void;
   isLast: boolean;
@@ -380,7 +467,9 @@ function Feedback({
           </span>
         </div>
 
-        <p className="mt-6 text-center text-xs font-extrabold uppercase tracking-widest text-muted-foreground">Tap a word for tips</p>
+        <p className="mt-6 text-center text-xs font-extrabold uppercase tracking-widest text-muted-foreground">
+          Tap a word for tips
+        </p>
         <div className="mt-3 flex flex-wrap justify-center gap-2">
           {words.map((w, i) => {
             const r = result.words[i];
@@ -402,15 +491,28 @@ function Feedback({
         </div>
 
         <div className="mt-4 flex justify-center gap-4 text-xs font-bold text-muted-foreground">
-          <span className="flex items-center gap-1"><i className="size-2.5 rounded-full bg-success" /> {counts.correct} correct</span>
-          <span className="flex items-center gap-1"><i className="size-2.5 rounded-full bg-warning" /> {counts.close} close</span>
-          <span className="flex items-center gap-1"><i className="size-2.5 rounded-full bg-danger" /> {counts.missed} missed</span>
+          <span className="flex items-center gap-1">
+            <i className="size-2.5 rounded-full bg-success" /> {counts.correct} correct
+          </span>
+          <span className="flex items-center gap-1">
+            <i className="size-2.5 rounded-full bg-warning" /> {counts.close} close
+          </span>
+          <span className="flex items-center gap-1">
+            <i className="size-2.5 rounded-full bg-danger" /> {counts.missed} missed
+          </span>
         </div>
 
         <p className="mt-5 rounded-2xl bg-muted px-4 py-3 text-center text-sm">
           <span className="font-bold text-muted-foreground">We heard: </span>
           <span className="font-semibold">“{result.transcript || "…"}”</span>
         </p>
+        {recordingUrl && (
+          <div className="mt-3 flex justify-center">
+            <Button variant="soft" size="pill" onClick={() => void new Audio(recordingUrl).play()}>
+              <Volume2 /> Listen to yourself
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="mt-6 grid w-full grid-cols-2 gap-3">
@@ -425,9 +527,9 @@ function Feedback({
       <WordDetail
         open={selected !== null}
         onOpenChange={(o) => !o && setSelected(null)}
-        word={selected !== null ? result.words[selected] ?? null : null}
-        display={selected !== null ? words[selected] ?? "" : ""}
-        ipa={selected !== null ? ipas[selected] ?? "" : ""}
+        word={selected !== null ? (result.words[selected] ?? null) : null}
+        display={selected !== null ? (words[selected] ?? "") : ""}
+        ipa={selected !== null ? (ipas[selected] ?? "") : ""}
       />
     </div>
   );
@@ -446,11 +548,17 @@ function Summary({ scores }: { scores: number[] }) {
       <Mascot mood="cheer" eager className="w-48 animate-float" />
       <h1 className="mt-2 font-display text-3xl font-bold">Session complete!</h1>
       <p className="mt-1 text-muted-foreground">
-        {scores.length ? "Every phrase brings you closer to sounding natural." : "You skipped this round — try speaking next time!"}
+        {scores.length
+          ? "Every phrase brings you closer to sounding natural."
+          : "You skipped this round — try speaking next time!"}
       </p>
       <div className="mt-6 grid w-full grid-cols-3 gap-3">
         <Stat label="Phrases" value={String(scores.length)} />
-        <Stat label="Avg score" value={scores.length ? String(avg) : "–"} tone={scores.length ? scoreTone(avg) : undefined} />
+        <Stat
+          label="Avg score"
+          value={scores.length ? String(avg) : "–"}
+          tone={scores.length ? scoreTone(avg) : undefined}
+        />
         <Stat label="XP earned" value={`+${xp}`} />
       </div>
       <div className="mt-8 grid w-full grid-cols-2 gap-3">

@@ -10,12 +10,30 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AssessmentRouteImport } from './routes/assessment'
+import { Route as CustomRouteImport } from './routes/custom'
+import { Route as DialogueRouteImport } from './routes/dialogue'
 import { Route as PracticeRouteImport } from './routes/practice'
 import { Route as ProgressRouteImport } from './routes/progress'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssessmentRoute = AssessmentRouteImport.update({
+  id: '/assessment',
+  path: '/assessment',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CustomRoute = CustomRouteImport.update({
+  id: '/custom',
+  path: '/custom',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DialogueRoute = DialogueRouteImport.update({
+  id: '/dialogue',
+  path: '/dialogue',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PracticeRoute = PracticeRouteImport.update({
@@ -31,30 +49,50 @@ const ProgressRoute = ProgressRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/assessment': typeof AssessmentRoute
+  '/custom': typeof CustomRoute
+  '/dialogue': typeof DialogueRoute
   '/practice': typeof PracticeRoute
   '/progress': typeof ProgressRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/assessment': typeof AssessmentRoute
+  '/custom': typeof CustomRoute
+  '/dialogue': typeof DialogueRoute
   '/practice': typeof PracticeRoute
   '/progress': typeof ProgressRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/assessment': typeof AssessmentRoute
+  '/custom': typeof CustomRoute
+  '/dialogue': typeof DialogueRoute
   '/practice': typeof PracticeRoute
   '/progress': typeof ProgressRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/practice' | '/progress'
+  fullPaths:
+    '/' | '/assessment' | '/custom' | '/dialogue' | '/practice' | '/progress'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/practice' | '/progress'
-  id: '__root__' | '/' | '/practice' | '/progress'
+  to: '/' | '/assessment' | '/custom' | '/dialogue' | '/practice' | '/progress'
+  id:
+    | '__root__'
+    | '/'
+    | '/assessment'
+    | '/custom'
+    | '/dialogue'
+    | '/practice'
+    | '/progress'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AssessmentRoute: typeof AssessmentRoute
+  CustomRoute: typeof CustomRoute
+  DialogueRoute: typeof DialogueRoute
   PracticeRoute: typeof PracticeRoute
   ProgressRoute: typeof ProgressRoute
 }
@@ -66,6 +104,27 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/assessment': {
+      id: '/assessment'
+      path: '/assessment'
+      fullPath: '/assessment'
+      preLoaderRoute: typeof AssessmentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/custom': {
+      id: '/custom'
+      path: '/custom'
+      fullPath: '/custom'
+      preLoaderRoute: typeof CustomRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dialogue': {
+      id: '/dialogue'
+      path: '/dialogue'
+      fullPath: '/dialogue'
+      preLoaderRoute: typeof DialogueRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/practice': {
@@ -87,6 +146,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AssessmentRoute: AssessmentRoute,
+  CustomRoute: CustomRoute,
+  DialogueRoute: DialogueRoute,
   PracticeRoute: PracticeRoute,
   ProgressRoute: ProgressRoute,
 }
