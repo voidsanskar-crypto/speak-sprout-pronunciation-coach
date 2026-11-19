@@ -1,9 +1,8 @@
 import { PHRASES, phrasesForTopic, type Phrase } from "./phrases";
 import { DAILY_GOAL, MASTERED_SCORE, type ProgressState } from "./progress";
 import { detectSounds, type SoundId } from "./sounds";
-import type { TopicId } from "./topics";
+import { DIFFICULTIES, type Difficulty, type TopicId } from "./topics";
 import { loadAssessment } from "./assessment";
-import type { Difficulty } from "./topics";
 import { loadLearningGoals, topicsForGoals } from "./learning-plan";
 
 function shuffle<T>(arr: T[], rand: () => number): T[] {
@@ -21,7 +20,11 @@ export function phrasesWithSound(sound: SoundId): Phrase[] {
 
 /** Build the list of phrases for a practice session; unmastered phrases come first. */
 export function buildQueue(
-  opts: { topic?: TopicId | undefined; sound?: SoundId | undefined },
+  opts: {
+    topic?: TopicId | undefined;
+    sound?: SoundId | undefined;
+    level?: Difficulty | undefined;
+  },
   state: ProgressState,
   rand: () => number = Math.random,
 ): Phrase[] {
@@ -34,8 +37,10 @@ export function buildQueue(
     ...shuffle(list.filter(isMastered), rand),
   ];
   const recentScores = state.attempts.slice(-12).map((a) => a.score);
-  const recentAverage = recentScores.length ? recentScores.reduce((a, b) => a + b, 0) / recentScores.length : null;
-  const levels: Difficulty[] = ["Beginner", "Intermediate", "Advanced"];
+  const recentAverage = recentScores.length
+    ? recentScores.reduce((a, b) => a + b, 0) / recentScores.length
+    : null;
+  const levels = DIFFICULTIES;
   const assessed = loadAssessment()?.level ?? "Beginner";
   let levelIndex = levels.indexOf(assessed);
   // Performance steadily unlocks harder material, and persistent difficulty brings in review.
@@ -47,16 +52,27 @@ export function buildQueue(
     // Put phrases that use the sound most often first.
     const count = (p: Phrase) =>
       p.text.split(/\s+/).filter((w) => detectSounds(w).includes(opts.sound!)).length;
-    return shuffle(phrasesWithSound(opts.sound), rand)
+    const phrases = phrasesWithSound(opts.sound).filter(
+      (phrase) =>
+        (!opts.level || phrase.difficulty === opts.level) &&
+        (!opts.topic || phrase.topic === opts.topic),
+    );
+    return shuffle(phrases, rand)
       .sort((a, b) => count(b) - count(a))
       .slice(0, 8);
   }
-  const eligible = (list: Phrase[]) => list.filter((p) => levels.indexOf(p.difficulty) <= levelIndex && levels.indexOf(p.difficulty) >= Math.max(0, levelIndex - 1));
+  const eligible = (list: Phrase[]) =>
+    list.filter((phrase) => {
+      if (opts.level) return phrase.difficulty === opts.level;
+      const index = levels.indexOf(phrase.difficulty);
+      return index <= levelIndex && index >= Math.max(0, levelIndex - 1);
+    });
   if (opts.topic) return prioritise(eligible(phrasesForTopic(opts.topic)));
   const topicOrder = topicsForGoals(loadLearningGoals());
-  const daily = prioritise(eligible(PHRASES)).sort((a,b)=>{
-    const aRank=topicOrder.indexOf(a.topic), bRank=topicOrder.indexOf(b.topic);
-    return (aRank<0?99:aRank)-(bRank<0?99:bRank);
+  const daily = prioritise(eligible(PHRASES)).sort((a, b) => {
+    const aRank = topicOrder.indexOf(a.topic),
+      bRank = topicOrder.indexOf(b.topic);
+    return (aRank < 0 ? 99 : aRank) - (bRank < 0 ? 99 : bRank);
   });
   const weakSounds = loadAssessment()?.weakSounds ?? [];
   if (!weakSounds.length) return daily.slice(0, DAILY_GOAL);

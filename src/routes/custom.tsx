@@ -21,13 +21,14 @@ function CustomPractice() {
           <ArrowLeft />
         </Link>
       </Button>
-      <h1 className="mt-5 font-display text-3xl font-bold">Practice your own</h1>
+      <h1 className="mt-5 font-display text-3xl font-bold">Practice your own text</h1>
       <p className="mb-5 mt-2 text-sm text-muted-foreground">
         Paste a sentence or a short speech excerpt. Your text stays in this browser.
       </p>
       {!phrase ? (
         <div className="rounded-[2rem] bg-card p-5 shadow-card">
           <Textarea
+            aria-label="Text to practice"
             value={draft}
             onChange={(event) => setDraft(event.target.value.slice(0, 600))}
             maxLength={600}
@@ -66,7 +67,7 @@ function CustomPractice() {
           <SpeechPrompt key={phrase} text={phrase} onScore={setResult} />
           {result && (
             <div className="mt-4 rounded-2xl bg-card p-4">
-              <p className="font-display text-2xl font-bold">Score: {result.score}%</p>
+              <p className="font-display text-2xl font-bold">Word match · {result.score}%</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 We heard: “{result.transcript || "No clear speech"}”
               </p>
@@ -80,7 +81,6 @@ function CustomPractice() {
             className="mt-4 w-full"
             onClick={() => {
               setPhrase("");
-              setDraft("");
               setResult(null);
             }}
           >

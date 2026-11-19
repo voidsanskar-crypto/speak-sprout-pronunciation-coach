@@ -1,5 +1,10 @@
 export type TopicId = "travel" | "interview" | "smalltalk" | "sounds";
-export type Difficulty = "Beginner" | "Intermediate" | "Advanced";
+export const DIFFICULTIES = ["Beginner", "Intermediate", "Advanced"] as const;
+export type Difficulty = (typeof DIFFICULTIES)[number];
+
+export function isDifficulty(value: unknown): value is Difficulty {
+  return DIFFICULTIES.some((difficulty) => difficulty === value);
+}
 
 export interface Topic {
   id: TopicId;

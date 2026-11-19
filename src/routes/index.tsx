@@ -1,30 +1,33 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Flame, MessageCircle, Play, Sparkles, Zap, UserRound } from "lucide-react";
-import { MobileShell } from "@/components/speakup/MobileShell";
+import { ArrowRight, Flame, Mic, Sprout, Zap } from "lucide-react";
 import { Mascot } from "@/components/speakup/Mascot";
+import { MobileShell } from "@/components/speakup/MobileShell";
+import { PracticeTools } from "@/components/speakup/PracticeTools";
 import { Ring } from "@/components/speakup/Ring";
 import { TopicCard } from "@/components/speakup/TopicCard";
 import { Button } from "@/components/ui/button";
-import { useProgress } from "@/hooks/use-progress";
 import { useHydrated } from "@/hooks/use-hydrated";
-import { PHRASES } from "@/lib/phrases";
-import { currentStreak, DAILY_GOAL, masteredIds, phrasesDoneOn, toDateKey } from "@/lib/progress";
-import { SOUND_IDS, SOUNDS } from "@/lib/sounds";
-import { TOPICS } from "@/lib/topics";
+import { useProgress } from "@/hooks/use-progress";
 import { loadAssessment } from "@/lib/assessment";
+import { PHRASES, phrasesForTopic } from "@/lib/phrases";
+import { currentStreak, DAILY_GOAL, masteredIds, phrasesDoneOn, toDateKey } from "@/lib/progress";
+import { SOUNDS, SOUND_IDS } from "@/lib/sounds";
+import { TOPICS } from "@/lib/topics";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "SpeakUp — Your daily English pronunciation coach" },
+      { title: "Speak Sprout — English Speaking Practice" },
       {
         name: "description",
-        content: "Build a daily streak, practice real phrases and get instant word-match feedback.",
+        content:
+          "Practice English one phrase at a time with audio examples, voice replay, and word-match feedback.",
       },
-      { property: "og:title", content: "SpeakUp — Your daily English pronunciation coach" },
+      { property: "og:title", content: "Speak Sprout — English Speaking Practice" },
       {
         property: "og:description",
-        content: "Build a daily streak, practice real phrases and get instant word-match feedback.",
+        content:
+          "Practice English one phrase at a time with audio examples, voice replay, and word-match feedback.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -33,179 +36,137 @@ export const Route = createFileRoute("/")({
   component: Home,
 });
 
-function greeting(hour: number) {
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
-  return "Good evening";
-}
-
 function Home() {
   const progress = useProgress();
   const hydrated = useHydrated();
   const today = hydrated ? toDateKey(new Date()) : "";
   const done = hydrated ? phrasesDoneOn(progress, today) : 0;
   const streak = hydrated ? currentStreak(progress, today) : 0;
-  const mastered = new Set(masteredIds(progress));
   const assessment = hydrated ? loadAssessment() : null;
-  const left = Math.max(0, DAILY_GOAL - done);
+  const mastered = new Set(masteredIds(progress));
+  const goalReached = done >= DAILY_GOAL;
 
   return (
     <MobileShell>
-      <header className="flex items-start justify-between animate-rise">
-        <div className="pt-2">
-          <p className="text-sm font-bold text-muted-foreground">
-            {hydrated ? greeting(new Date().getHours()) : "Hello"} 👋
-          </p>
-          <h1 className="mt-1 font-display text-3xl font-bold leading-tight">
-            Ready to <span className="text-primary">SpeakUp</span>?
-          </h1>
-          <div className="mt-3 flex gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-sm font-extrabold shadow-soft">
-              <Flame className="size-4 fill-flame text-flame animate-flicker" /> {streak} day
-              {streak === 1 ? "" : "s"}
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.75fr)_minmax(0,1fr)]">
+        <section className="relative isolate min-h-60 overflow-hidden rounded-[1.75rem] border border-primary/15 bg-primary-soft p-5 sm:p-7">
+          <div
+            aria-hidden="true"
+            className="absolute -right-12 -top-16 -z-10 size-72 rounded-full bg-secondary sm:size-88"
+          />
+          <Mascot
+            eager
+            className="absolute -bottom-4 -right-5 -z-10 w-33 min-[375px]:right-0 min-[375px]:w-38 sm:-bottom-7 sm:right-0 sm:w-48 xl:right-2 xl:w-53"
+          />
+          <div className="max-w-[15rem] sm:max-w-68">
+            <p className="flex items-center gap-1.5 text-xs font-extrabold text-primary">
+              <Sprout aria-hidden="true" className="size-4" />
+              {assessment ? `${assessment.level} practice plan` : "Your daily session"}
+            </p>
+            <h1 className="mt-3 font-display text-3xl font-bold leading-[1.05] sm:text-4xl">
+              Daily speaking practice
+            </h1>
+            <p className="mt-3 max-w-44 text-sm leading-relaxed text-muted-foreground sm:max-w-60">
+              Hear each phrase, record your version, and review what the browser heard.
+            </p>
+            <Button
+              asChild
+              variant="hero"
+              size="pill"
+              className="mt-5 px-4 text-sm sm:px-6 sm:text-base"
+            >
+              <Link to="/practice">
+                <Mic aria-hidden="true" /> Start practice
+              </Link>
+            </Button>
+          </div>
+        </section>
+
+        <section className="flex flex-col justify-between rounded-[1.75rem] border border-border bg-card p-5 sm:p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="font-display text-xl font-semibold">Today’s goal</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {goalReached
+                  ? "Daily goal reached"
+                  : `${DAILY_GOAL - done} ${DAILY_GOAL - done === 1 ? "phrase" : "phrases"} to go`}
+              </p>
+            </div>
+            <div aria-label={`${done} of ${DAILY_GOAL} phrases practiced`}>
+              <Ring
+                value={Math.min(1, done / DAILY_GOAL)}
+                size={66}
+                stroke={7}
+                barClassName="text-primary"
+                trackClassName="text-primary-soft"
+              >
+                <span className="font-display text-lg font-bold">
+                  {done}/{DAILY_GOAL}
+                </span>
+              </Ring>
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-2 border-t border-border pt-4 text-sm font-bold">
+            <span className="flex items-center gap-2">
+              <Flame aria-hidden="true" className="size-4 text-flame" /> {streak}-day streak
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-sm font-extrabold shadow-soft">
-              <Zap className="size-4 fill-sun text-sun" /> {progress.xp} XP
+            <span className="flex items-center gap-2">
+              <Zap aria-hidden="true" className="size-4 text-primary" /> {progress.xp} XP
             </span>
           </div>
-        </div>
-        <div className="flex flex-col items-center">
-          <Link
-            to="/login"
-            aria-label="Profile"
-            className="mb-1 rounded-full bg-card p-2 text-primary shadow-soft"
-          >
-            <UserRound className="size-5" />
-          </Link>
-          <Mascot eager className="-mr-2 -mt-2 w-32 animate-float" />
-        </div>
-      </header>
+        </section>
+      </div>
 
-      <section className="mt-5 flex items-center gap-5 rounded-[2rem] bg-card p-5 shadow-card animate-rise [animation-delay:80ms]">
-        <Ring
-          value={done / DAILY_GOAL}
-          size={104}
-          stroke={11}
-          barClassName="text-primary"
-          trackClassName="text-primary-soft"
-        >
-          <span className="font-display text-3xl font-bold leading-none">{done}</span>
-          <span className="text-[11px] font-bold text-muted-foreground">of {DAILY_GOAL}</span>
-        </Ring>
-        <div className="flex-1">
-          <p className="text-xs font-extrabold uppercase tracking-widest text-muted-foreground">
-            Today's goal
-          </p>
-          <p className="mt-1 font-display text-xl font-semibold leading-snug">
-            {left === 0 ? "Goal smashed! 🎉" : `${left} phrase${left === 1 ? "" : "s"} to go`}
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {left === 0
-              ? "Keep going for bonus XP."
-              : "Practice a few phrases to reach your daily goal."}
-          </p>
-        </div>
+      <section className="mt-7">
+        <h2 className="mb-3 font-display text-2xl font-semibold">Practice tools</h2>
+        <PracticeTools />
       </section>
 
-      <Button
-        asChild
-        variant="hero"
-        size="xl"
-        className="mt-5 w-full animate-rise [animation-delay:140ms]"
-      >
-        <Link to="/practice">
-          <Play className="fill-current" /> Start Daily Practice
-        </Link>
-      </Button>
-
-      <section className="mt-4 rounded-[2rem] bg-card p-5 shadow-card">
-        {assessment ? (
-          <>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground">
-                  Your practice level
-                </p>
-                <p className="mt-1 font-display text-xl font-bold">
-                  {assessment.level} · {assessment.score}% word match
-                </p>
-              </div>
-              <Button asChild variant="soft" size="sm">
-                <Link to="/assessment">Retake</Link>
-              </Button>
-            </div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {assessment.weakSounds.length
-                ? `Suggested sound drills: ${assessment.weakSounds.join(", ")}.`
-                : "Your plan includes a mix of sounds."}
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="font-display text-lg font-bold">Find your starting practice level</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              A quick 5-phrase check builds a personalized daily plan.
-            </p>
-            <Button asChild variant="soft" className="mt-3 w-full">
-              <Link to="/assessment">
-                Start speaking check <Play />
-              </Link>
-            </Button>
-          </>
-        )}
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <Button asChild variant="chip" size="pill">
-            <Link to="/dialogue">
-              <MessageCircle /> Roleplay
+      <section className="mt-7 rounded-[1.5rem] border border-border bg-card p-4 sm:p-5">
+        <h2 className="font-display text-xl font-semibold">Quick sound drills</h2>
+        <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6">
+          {SOUND_IDS.map((id) => (
+            <Link
+              key={id}
+              to="/practice"
+              search={{ sound: id }}
+              className="rounded-xl border border-border px-2.5 py-2 transition-colors hover:border-primary/40 hover:bg-primary-soft"
+            >
+              <span className="block font-display text-base font-semibold text-primary">
+                {SOUNDS[id].label}
+              </span>
+              <span className="block text-xs leading-snug text-muted-foreground">
+                {SOUNDS[id].example}
+              </span>
             </Link>
-          </Button>
-          <Button asChild variant="chip" size="pill">
-            <Link to="/custom">
-              <Sparkles /> Your own text
-            </Link>
-          </Button>
-          <Button asChild variant="chip" size="pill">
-            <Link to="/skills">Skills</Link>
-          </Button>
-          <Button asChild variant="chip" size="pill">
-            <Link to="/dictionary">Dictionary</Link>
-          </Button>
-        </div>
-      </section>
-
-      <section className="mt-8">
-        <h2 className="mb-3 flex items-center gap-2 font-display text-xl font-semibold">
-          <Sparkles className="size-5 text-primary" /> Quick sound drills
-        </h2>
-        <div className="flex flex-wrap gap-2">
-          {SOUND_IDS.map((s) => (
-            <Button key={s} asChild variant="chip" size="pill">
-              <Link to="/practice" search={{ sound: s }}>
-                <span className="font-display">{SOUNDS[s].label}</span>
-                <span className="text-xs font-semibold opacity-70">{SOUNDS[s].example}</span>
-              </Link>
-            </Button>
           ))}
         </div>
       </section>
 
-      <section className="mt-8">
-        <div className="mb-3 flex items-end justify-between">
-          <h2 className="font-display text-xl font-semibold">Topics</h2>
-          <span className="text-xs font-bold text-muted-foreground">
-            {mastered.size} / {PHRASES.length} mastered
-          </span>
+      <section className="mt-7">
+        <div className="mb-3 flex items-end justify-between gap-2">
+          <div>
+            <h2 className="font-display text-2xl font-semibold">Phrase topics</h2>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {mastered.size} of {PHRASES.length} mastered
+            </p>
+          </div>
+          <Link
+            to="/skills"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md text-sm font-bold text-primary underline-offset-4 hover:underline"
+          >
+            Open library <ArrowRight aria-hidden="true" className="size-4" />
+          </Link>
         </div>
-        <div className="space-y-3">
-          {TOPICS.map((t, i) => {
-            const ids = PHRASES.filter((p) => p.topic === t.id).map((p) => p.id);
+        <div className="grid gap-2.5 md:grid-cols-2">
+          {TOPICS.map((topic) => {
+            const phrases = phrasesForTopic(topic.id);
             return (
               <TopicCard
-                key={t.id}
-                topic={t}
-                total={ids.length}
-                done={ids.filter((id) => mastered.has(id)).length}
-                delay={200 + i * 60}
+                key={topic.id}
+                topic={topic}
+                total={phrases.length}
+                done={phrases.filter((phrase) => mastered.has(phrase.id)).length}
               />
             );
           })}

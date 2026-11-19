@@ -35,12 +35,13 @@ import { scoreBest, type ScoreResult } from "@/lib/scoring";
 import { buildQueue } from "@/lib/session";
 import { SOUND_IDS, SOUNDS, type SoundId } from "@/lib/sounds";
 import { canSpeak, speak, stopSpeaking } from "@/lib/speech";
-import { getTopic, TOPICS, type TopicId } from "@/lib/topics";
+import { getTopic, isDifficulty, TOPICS, type Difficulty, type TopicId } from "@/lib/topics";
 import { cn } from "@/lib/utils";
 
 interface PracticeSearch {
   topic?: TopicId | undefined;
   sound?: SoundId | undefined;
+  level?: Difficulty | undefined;
 }
 
 export const Route = createFileRoute("/practice")({
@@ -49,17 +50,18 @@ export const Route = createFileRoute("/practice")({
     const rawSound = search["sound"];
     const topic = TOPICS.some((t) => t.id === rawTopic) ? (rawTopic as TopicId) : undefined;
     const sound = SOUND_IDS.includes(rawSound as SoundId) ? (rawSound as SoundId) : undefined;
-    return { ...(topic ? { topic } : {}), ...(sound ? { sound } : {}) };
+    const level = isDifficulty(search["level"]) ? search["level"] : undefined;
+    return { topic, sound, level };
   },
   head: () => ({
     meta: [
-      { title: "Practice — SpeakUp" },
+      { title: "Practice — Speak Sprout" },
       {
         name: "description",
         content:
           "Listen to native-style audio, record yourself and get instant word-match feedback.",
       },
-      { property: "og:title", content: "Practice — SpeakUp" },
+      { property: "og:title", content: "Practice — Speak Sprout" },
       {
         property: "og:description",
         content: "Listen, speak and see how the browser transcript matches the phrase.",
@@ -74,7 +76,7 @@ export const Route = createFileRoute("/practice")({
 type Stage = "practice" | "feedback" | "summary";
 
 function Practice() {
-  const { topic, sound } = Route.useSearch();
+  const { topic, sound, level } = Route.useSearch();
   const progress = useProgress();
   const [queue, setQueue] = useState<Phrase[] | null>(null);
   const [index, setIndex] = useState(0);
@@ -83,13 +85,13 @@ function Practice() {
   const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
   const [sessionScores, setSessionScores] = useState<number[]>([]);
   useEffect(() => {
-    setQueue(buildQueue({ topic, sound }, getProgressSnapshot()));
+    setQueue(buildQueue({ topic, sound, level }, getProgressSnapshot()));
     setIndex(0);
     setStage("practice");
     setResult(null);
     setRecordingUrl(null);
     setSessionScores([]);
-  }, [topic, sound]);
+  }, [topic, sound, level]);
 
   useEffect(
     () => () => {
@@ -99,11 +101,12 @@ function Practice() {
     [recordingUrl],
   );
 
-  const title = sound
+  const sessionTitle = sound
     ? `${SOUNDS[sound]?.label ?? sound} sound drill`
     : topic
       ? (getTopic(topic)?.name ?? "Practice")
       : "Daily practice";
+  const title = level ? `${sessionTitle} · ${level}` : sessionTitle;
   const phrase = queue?.[index];
 
   const next = useCallback(() => {
@@ -148,7 +151,7 @@ function Practice() {
             <div
               className="h-full rounded-full bg-gradient-hero transition-[width] duration-500"
               style={{
-                width: queue
+                width: queue?.length
                   ? `${((stage === "summary" ? queue.length : index + (stage === "feedback" ? 1 : 0)) / queue.length) * 100}%`
                   : "0%",
               }}
@@ -156,12 +159,22 @@ function Practice() {
           </div>
         </div>
         <span className="min-w-10 text-right text-sm font-extrabold text-muted-foreground">
-          {queue ? `${Math.min(index + 1, queue.length)}/${queue.length}` : ""}
+          {queue?.length ? `${Math.min(index + 1, queue.length)}/${queue.length}` : ""}
         </span>
       </div>
 
-      {!queue || !phrase ? (
+      {!queue ? (
         <div className="mt-10 h-80 animate-pulse rounded-[2rem] bg-card/70" />
+      ) : !phrase ? (
+        <section className="mt-8 rounded-[2rem] border border-border bg-card p-6">
+          <h1 className="font-display text-2xl font-bold">No matching phrases</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Choose another level or topic in the library.
+          </p>
+          <Button asChild variant="hero" className="mt-4">
+            <Link to="/skills">Open library</Link>
+          </Button>
+        </section>
       ) : stage === "summary" ? (
         <Summary scores={sessionScores} />
       ) : stage === "feedback" && result ? (
