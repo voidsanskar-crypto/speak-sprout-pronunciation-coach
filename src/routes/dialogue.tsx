@@ -1,175 +1,28 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowLeft, ArrowRight, LoaderCircle, MessageCircle, Send, Volume2 } from "lucide-react";
 import { useState } from "react";
-import { ArrowLeft, ArrowRight, MessageCircle } from "lucide-react";
 import { MobileShell } from "@/components/speakup/MobileShell";
-import { SpeechPrompt } from "@/components/speakup/SpeechPrompt";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { groqRoleplay } from "@/lib/ai/groq.functions";
 import { speak } from "@/lib/speech";
-import type { ScoreResult } from "@/lib/scoring";
 
-const scenarios = [
-  {
-    title: "At a café",
-    role: "Barista",
-    turns: [
-      ["Hi there! What can I get started for you?", "Hi! Could I have a cappuccino, please?"],
-      [
-        "Sure. Would you like that for here or to go?",
-        "To go, please. Could I also get a glass of water?",
-      ],
-      ["Absolutely. Anything else today?", "That’s everything. How much do I owe you?"],
-    ],
-  },
-  {
-    title: "Hotel check-in",
-    role: "Receptionist",
-    turns: [
-      [
-        "Welcome to the Grand Hotel. How can I help you?",
-        "Hello, I have a reservation under the name Taylor.",
-      ],
-      ["I found it. Could I see your photo ID, please?", "Of course. Here is my passport."],
-      [
-        "Thank you. Your room is ready. Would you like help with your bags?",
-        "Yes, that would be lovely. What time is breakfast?",
-      ],
-    ],
-  },
-  {
-    title: "Meet a recruiter",
-    role: "Recruiter",
-    turns: [
-      [
-        "Thanks for joining. Could you tell me a little about yourself?",
-        "I’m a product designer with five years of experience.",
-      ],
-      [
-        "What kind of work are you most proud of?",
-        "I led a project that made our mobile app easier to use.",
-      ],
-      [
-        "What would you like to ask me about the role?",
-        "Could you tell me what success looks like in this position?",
-      ],
-    ],
-  },
-] as const;
-
-export const Route = createFileRoute("/dialogue")({ component: Dialogue });
-
-function Dialogue() {
-  const [scenario, setScenario] = useState<number | null>(null);
-  const [turn, setTurn] = useState(0);
-  const [score, setScore] = useState<ScoreResult | null>(null);
-  const selected = scenario === null ? null : scenarios[scenario];
-  const exchange = selected?.turns[turn];
-  const reset = () => {
-    setScenario(null);
-    setTurn(0);
-    setScore(null);
-  };
-  return (
-    <MobileShell nav={false}>
-      <Button variant="soft" size="icon-lg" aria-label="Back home" onClick={reset}>
-        <ArrowLeft />
-      </Button>
-      {!selected ? (
-        <>
-          <h1 className="mt-5 font-display text-3xl font-bold">Conversation practice</h1>
-          <p className="mb-5 mt-2 text-sm text-muted-foreground">
-            Choose a scene. Speak your line, hear your conversation partner, and get a score.
-          </p>
-          <div className="space-y-3">
-            {scenarios.map((item, index) => (
-              <button
-                key={item.title}
-                onClick={() => {
-                  setScenario(index);
-                  setTurn(0);
-                  setScore(null);
-                  speak(item.turns[0]![0]);
-                }}
-                className="w-full rounded-[2rem] bg-card p-5 text-left shadow-card transition-transform hover:-translate-y-0.5"
-              >
-                <span className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wide text-primary">
-                  <MessageCircle className="size-4" /> Roleplay
-                </span>
-                <span className="mt-2 block font-display text-xl font-bold">{item.title}</span>
-                <span className="mt-1 block text-sm text-muted-foreground">
-                  Speak with a {item.role.toLowerCase()}
-                </span>
-              </button>
-            ))}
-          </div>
-        </>
-      ) : (
-        <>
-          <h1 className="mt-5 font-display text-3xl font-bold">{selected.title}</h1>
-          <p className="mb-4 mt-1 text-sm text-muted-foreground">
-            You · {selected.role} · Turn {turn + 1} of {selected.turns.length}
-          </p>
-          {turn === selected.turns.length ? (
-            <div className="rounded-[2rem] bg-card p-6 text-center shadow-card">
-              <MessageCircle className="mx-auto size-10 text-primary" />
-              <h2 className="mt-3 font-display text-2xl font-bold">Scene complete!</h2>
-              <p className="mt-2 text-muted-foreground">
-                You practiced {turn} responses. Nice work keeping the conversation moving.
-              </p>
-              <Button className="mt-5 w-full" variant="hero" onClick={reset}>
-                Choose another scene
-              </Button>
-            </div>
-          ) : (
-            exchange && (
-              <>
-                <div className="mb-4 rounded-[2rem] bg-secondary p-5 text-secondary-foreground">
-                  <p className="text-xs font-extrabold uppercase tracking-wide">
-                    {selected.role} says
-                  </p>
-                  <p className="mt-2 font-display text-xl font-semibold">“{exchange[0]}”</p>
-                  <Button
-                    className="mt-3"
-                    size="sm"
-                    variant="soft"
-                    onClick={() => speak(exchange[0])}
-                  >
-                    Hear {selected.role.toLowerCase()}
-                  </Button>
-                </div>
-                {score ? (
-                  <div className="rounded-[2rem] bg-card p-5 shadow-card">
-                    <p className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground">
-                      Your response
-                    </p>
-                    <p className="mt-2 font-semibold">“{exchange[1]}”</p>
-                    <p className="mt-3 font-display text-2xl font-bold text-primary">
-                      {score.score}%
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      We heard: “{score.transcript || "No clear speech"}”
-                    </p>
-                    <Button
-                      className="mt-4 w-full"
-                      variant="hero"
-                      onClick={() => {
-                        const nextTurn = turn + 1;
-                        setScore(null);
-                        setTurn(nextTurn);
-                        const nextLine = selected.turns[nextTurn]?.[0];
-                        if (nextLine) speak(nextLine);
-                      }}
-                    >
-                      Continue conversation <ArrowRight />
-                    </Button>
-                  </div>
-                ) : (
-                  <SpeechPrompt text={exchange[1]} onScore={setScore} />
-                )}
-              </>
-            )
-          )}
-        </>
-      )}
-    </MobileShell>
-  );
+const scenes=[
+ {title:"Order at a café",role:"Barista",scenario:"The learner is ordering a drink and snack at a busy neighborhood café."},
+ {title:"Check into a hotel",role:"Receptionist",scenario:"The learner is checking into a hotel, asking about amenities and resolving a small booking issue."},
+ {title:"Meet a recruiter",role:"Recruiter",scenario:"The learner is in a friendly job interview and should explain their experience and ask thoughtful questions."},
+];
+type Turn={role:"user"|"assistant";content:string};
+export const Route=createFileRoute("/dialogue")({component:Dialogue});
+function Dialogue(){
+ const [scene,setScene]=useState<(typeof scenes)[number]|null>(null);const [custom,setCustom]=useState("");const [role,setRole]=useState("Conversation partner");const [draft,setDraft]=useState("");const [turns,setTurns]=useState<Turn[]>([]);const [busy,setBusy]=useState(false);const [error,setError]=useState("");
+ const start=(next:(typeof scenes)[number])=>{setScene(next);setTurns([]);setError("");setDraft("")};
+ const send=async()=>{const text=draft.trim();if(!scene||!text||busy)return;const history=[...turns,{role:"user" as const,content:text}];setTurns(history);setDraft("");setBusy(true);setError("");try{const result=await groqRoleplay({data:{scenario:scene.scenario,role:scene.role,history}});if(!result.ok){setError(result.error);return}const next=[...history,{role:"assistant" as const,content:result.reply}];setTurns(next);speak(result.reply)}catch{setError("Could not contact the conversation coach. Please try again.")}finally{setBusy(false)}};
+ return <MobileShell nav={false}><Button asChild variant="soft" size="icon-lg" aria-label="Home"><Link to="/"><ArrowLeft/></Link></Button>
+ {!scene?<><h1 className="mt-5 font-display text-3xl font-bold">AI conversation practice</h1><p className="mb-5 mt-2 text-sm text-muted-foreground">Choose a roleplay or make your own. SpeakUp’s AI partner responds to what you say and keeps the conversation moving.</p><div className="space-y-3">{scenes.map(item=><button key={item.title} onClick={()=>start(item)} className="w-full rounded-[2rem] bg-card p-5 text-left shadow-card"><span className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wide text-primary"><MessageCircle className="size-4"/> Roleplay</span><span className="mt-2 block font-display text-xl font-bold">{item.title}</span><span className="mt-1 block text-sm text-muted-foreground">Speak with a {item.role.toLowerCase()}</span></button>)}</div><section className="mt-5 rounded-[2rem] bg-card p-5 shadow-card"><h2 className="font-display text-xl font-bold">Create your scenario</h2><input className="mt-3 w-full rounded-2xl border bg-background px-4 py-3" value={role} onChange={e=>setRole(e.target.value)} placeholder="AI partner role"/><Textarea className="mt-3 rounded-2xl bg-background" value={custom} onChange={e=>setCustom(e.target.value.slice(0,300))} rows={3} placeholder="Describe the situation you want to practice…"/><Button className="mt-3 w-full" variant="hero" disabled={custom.trim().length<6} onClick={()=>start({title:"Custom roleplay",role:role.trim()||"Conversation partner",scenario:custom.trim()})}>Start custom scenario <ArrowRight/></Button></section></>:<>
+ <h1 className="mt-5 font-display text-3xl font-bold">{scene.title}</h1><p className="mt-1 text-sm text-muted-foreground">You · {scene.role} · Conversation partner adapts to your replies</p>
+ <div className="mt-4 max-h-[48vh] space-y-3 overflow-y-auto rounded-[2rem] bg-card p-4 shadow-card">{turns.length===0&&<div className="rounded-2xl bg-secondary p-4 text-secondary-foreground"><p className="text-xs font-extrabold uppercase">{scene.role}</p><p className="mt-1">Hi! Welcome. What brings you here today?</p><Button className="mt-2" size="sm" variant="soft" onClick={()=>speak("Hi! Welcome. What brings you here today?")}><Volume2/> Hear example</Button></div>}{turns.map((turn,i)=><div key={i} className={`max-w-[90%] rounded-2xl p-4 ${turn.role==="user"?"ml-auto bg-primary text-primary-foreground":"bg-secondary text-secondary-foreground"}`}><p className="text-xs font-extrabold uppercase">{turn.role==="user"?"You":scene.role}</p><p className="mt-1 whitespace-pre-wrap">{turn.content}</p>{turn.role==="assistant"&&<button className="mt-2 inline-flex items-center gap-1 text-xs font-bold" onClick={()=>speak(turn.content)}><Volume2 className="size-4"/> Listen</button>}</div>)}</div>
+ {error&&<p className="mt-3 rounded-2xl bg-warning-soft p-3 text-sm font-semibold">{error}</p>}<div className="mt-4"><Textarea value={draft} onChange={e=>setDraft(e.target.value.slice(0,1200))} rows={3} className="rounded-2xl bg-card" placeholder="Type a response to your conversation partner…"/><Button className="mt-3 w-full" variant="hero" disabled={!draft.trim()||busy} onClick={()=>void send()}>{busy?<><LoaderCircle className="animate-spin"/> Thinking…</>:<>Send response <Send/></>}</Button><p className="mt-2 text-center text-xs text-muted-foreground">This first AI version uses typed replies. Browser speech recording is still available in phrase practice.</p></div><Button className="mt-3 w-full" variant="soft" onClick={()=>{setScene(null);setTurns([]);setError("")}}>Choose another scenario</Button>
+ </>}
+ </MobileShell>
 }
