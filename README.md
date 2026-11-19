@@ -1,35 +1,71 @@
-# Speak Sprout Pronunciation Coach
+# SpeakUp — English Speaking Coach
 
-i need to make an app like elsa english speaking
+SpeakUp is a browser-based English speaking practice app. It combines guided pronunciation drills, a level-aware phrase curriculum, dictionary audio, and AI roleplay conversations.
 
-This project was built with [Lovable](https://lovable.dev).
+**Live app:** [speak-sprout-pronunciation-coach.vercel.app](https://speak-sprout-pronunciation-coach.vercel.app)  
+**GitHub:** [voidsanskar-crypto/speak-sprout-pronunciation-coach](https://github.com/voidsanskar-crypto/speak-sprout-pronunciation-coach)
 
-## Speaking features
+## Features
 
-- Practice cards and guided prompts can save a temporary voice recording with `MediaRecorder` for side-by-side listening. Recordings stay in memory for the current page session and are not uploaded.
-- The five-line pronunciation check saves an estimated level and targets daily phrase selection using the sounds that scored lowest. Progress remains in localStorage.
-- Conversation practice includes guided café, hotel and recruiter scenes with native browser text-to-speech and scored learner turns.
-- Practice Your Own accepts up to 600 characters and scores speech using the browser transcript matcher. Its IPA-style sound guide is a spelling-based approximation, not a dictionary pronunciation.
+- **Adaptive curriculum:** 173 phrases across Beginner, Intermediate, and Advanced levels. The five-line assessment, recent practice scores, weak sounds, and selected learning goals guide daily practice.
+- **Speaking practice:** Browser speech recognition scores how closely recognized words match the prompt. Word cards provide status-specific practice tips. This is transcript matching, not phoneme-level acoustic scoring.
+- **Voice replay:** Phrase practice records a temporary clip in the current page session so learners can replay their own voice. Clips are not uploaded or saved as permanent recordings.
+- **AI roleplay:** Practice café, hotel, recruiter, or custom scenarios with a Groq-powered conversation partner. Learners can speak through browser speech recognition or type; recognized speech is editable before sending. Roleplay review gives transcript-based language and task feedback, plus an estimated speaking rate for recorded replies.
+- **Pronunciation dictionary:** Look up arbitrary English words for dictionary-provided phonetic spellings and audio where available, then practice saying the word. Some entries may have multiple variants or missing audio.
+- **Practice your own text:** Rehearse pasted sentences and short scripts with browser recognition and an approximate spelling-based guide.
+- **Progress and profile:** Scores, selected goals, profile details, and progress are stored in browser local storage. They do not sync between devices; the profile page is not secure authentication.
 
-Speech recognition and voice playback use the browser's built-in APIs. Scores reflect transcript similarity and should be treated as practice feedback, not a professional fluency assessment.
+## Tech stack
 
-**Live app**: https://speak-sprout-pronunciation-coach.lovable.app
+- React 19, TypeScript, TanStack Start and TanStack Router
+- Vite, Tailwind CSS 4, shadcn/ui and Radix UI
+- Browser `SpeechRecognition`, `MediaRecorder`, and `SpeechSynthesis` APIs
+- Groq Chat Completions API for roleplay and conversation review; the key is read only on the server
+- Free Dictionary API for word phonetics and pronunciation audio
+- Vercel deployment (Nitro Vercel preset); GitHub Pages base path remains supported
+- Local storage for learner progress and preferences; no app database or account sync
 
-## Build with Lovable
+## Run locally
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/1474bedf-6266-481e-91f4-eed92b93ec2e).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+Requires Node.js and npm.
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
+git clone https://github.com/voidsanskar-crypto/speak-sprout-pronunciation-coach.git
+cd speak-sprout-pronunciation-coach
+npm install
+```
+
+For AI roleplay locally, copy `.env.example` to `.env.local` and set a Groq key:
+
+```env
+GROQ_API_KEY=your_groq_api_key
+```
+
+Keep API keys out of source control. On Vercel, add `GROQ_API_KEY` in the project’s Environment Variables settings and redeploy.
+
+```sh
 npm run dev
 ```
+
+Vercel sets its deployment environment automatically and runs the production build.
+
+## Project structure
+
+```text
+src/
+  assets/       Mascot art and bundled visual assets
+  components/   Shared UI and SpeakUp-specific components
+  hooks/        Speech capture, progress, translation, and browser hooks
+  lib/          Curriculum, scoring, local state, speech, and AI functions
+  routes/       Home, practice, assessment, roleplay, dictionary, profile, progress
+  test/         Test setup and route coverage
+public/         Static files
+```
+
+## Notes and limitations
+
+- Browser speech recognition availability and accuracy vary by browser, device, accent, and network.
+- Transcript-match percentages do not measure individual phoneme quality, intonation, or accent.
+- The roleplay coach provides grammar, vocabulary, strengths, and task-progress guidance from the recognized text. It does not claim to judge pronunciation from text.
+- Dictionary audio and phonetic spelling depend on the external entry’s coverage.
+- Learner data remains in the current browser until a future authentication and cloud-sync service is added.
