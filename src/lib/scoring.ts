@@ -13,6 +13,7 @@ export interface ScoreResult {
   words: WordResult[];
   transcript: string;
   extraWordCount: number;
+  extraWords: string[];
 }
 
 export const CORRECT_THRESHOLD = 0.8;
@@ -131,7 +132,7 @@ export function scoreTranscript(targetText: string, transcript: string): ScoreRe
   }
 
   const matched: (string | null)[] = new Array(n).fill(null);
-  let extras = 0;
+  const extraWords: string[] = [];
   let i = n;
   let j = m;
   while (i > 0 || j > 0) {
@@ -143,7 +144,7 @@ export function scoreTranscript(targetText: string, transcript: string): ScoreRe
     } else if (mv === 1) {
       i--;
     } else {
-      extras++;
+      extraWords.push(heard[j - 1]!);
       j--;
     }
   }
@@ -155,12 +156,13 @@ export function scoreTranscript(targetText: string, transcript: string): ScoreRe
   });
 
   const total = words.reduce((s, w) => s + w.similarity, 0);
-  const raw = n === 0 ? 0 : (total / (n + extras * 0.25)) * 100;
+  const raw = n === 0 ? 0 : (total / (n + extraWords.length * 0.25)) * 100;
   return {
     score: Math.round(Math.max(0, Math.min(100, raw))),
     words,
     transcript,
-    extraWordCount: extras,
+    extraWordCount: extraWords.length,
+    extraWords: extraWords.reverse(),
   };
 }
 

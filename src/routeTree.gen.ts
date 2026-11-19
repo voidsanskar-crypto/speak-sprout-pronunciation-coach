@@ -15,6 +15,7 @@ import { Route as CustomRouteImport } from './routes/custom'
 import { Route as DialogueRouteImport } from './routes/dialogue'
 import { Route as DictionaryRouteImport } from './routes/dictionary'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as MissionRouteImport } from './routes/mission'
 import { Route as PracticeRouteImport } from './routes/practice'
 import { Route as ProgressRouteImport } from './routes/progress'
 import { Route as SkillsRouteImport } from './routes/skills'
@@ -49,6 +50,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MissionRoute = MissionRouteImport.update({
+  id: '/mission',
+  path: '/mission',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PracticeRoute = PracticeRouteImport.update({
   id: '/practice',
   path: '/practice',
@@ -72,6 +78,7 @@ export interface FileRoutesByFullPath {
   '/dialogue': typeof DialogueRoute
   '/dictionary': typeof DictionaryRoute
   '/login': typeof LoginRoute
+  '/mission': typeof MissionRoute
   '/practice': typeof PracticeRoute
   '/progress': typeof ProgressRoute
   '/skills': typeof SkillsRoute
@@ -83,6 +90,7 @@ export interface FileRoutesByTo {
   '/dialogue': typeof DialogueRoute
   '/dictionary': typeof DictionaryRoute
   '/login': typeof LoginRoute
+  '/mission': typeof MissionRoute
   '/practice': typeof PracticeRoute
   '/progress': typeof ProgressRoute
   '/skills': typeof SkillsRoute
@@ -95,6 +103,7 @@ export interface FileRoutesById {
   '/dialogue': typeof DialogueRoute
   '/dictionary': typeof DictionaryRoute
   '/login': typeof LoginRoute
+  '/mission': typeof MissionRoute
   '/practice': typeof PracticeRoute
   '/progress': typeof ProgressRoute
   '/skills': typeof SkillsRoute
@@ -108,6 +117,7 @@ export interface FileRouteTypes {
     | '/dialogue'
     | '/dictionary'
     | '/login'
+    | '/mission'
     | '/practice'
     | '/progress'
     | '/skills'
@@ -119,6 +129,7 @@ export interface FileRouteTypes {
     | '/dialogue'
     | '/dictionary'
     | '/login'
+    | '/mission'
     | '/practice'
     | '/progress'
     | '/skills'
@@ -130,6 +141,7 @@ export interface FileRouteTypes {
     | '/dialogue'
     | '/dictionary'
     | '/login'
+    | '/mission'
     | '/practice'
     | '/progress'
     | '/skills'
@@ -142,6 +154,7 @@ export interface RootRouteChildren {
   DialogueRoute: typeof DialogueRoute
   DictionaryRoute: typeof DictionaryRoute
   LoginRoute: typeof LoginRoute
+  MissionRoute: typeof MissionRoute
   PracticeRoute: typeof PracticeRoute
   ProgressRoute: typeof ProgressRoute
   SkillsRoute: typeof SkillsRoute
@@ -191,6 +204,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mission': {
+      id: '/mission'
+      path: '/mission'
+      fullPath: '/mission'
+      preLoaderRoute: typeof MissionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/practice': {
       id: '/practice'
       path: '/practice'
@@ -222,6 +242,7 @@ const rootRouteChildren: RootRouteChildren = {
   DialogueRoute: DialogueRoute,
   DictionaryRoute: DictionaryRoute,
   LoginRoute: LoginRoute,
+  MissionRoute: MissionRoute,
   PracticeRoute: PracticeRoute,
   ProgressRoute: ProgressRoute,
   SkillsRoute: SkillsRoute,

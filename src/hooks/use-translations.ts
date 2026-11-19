@@ -21,22 +21,47 @@ function writeCache(lang: string, add: Record<string, string>) {
   }
 }
 
-/** Translation of one phrase in the chosen language, fetched on demand and kept on the device. */
-export function usePhraseTranslation(phrase: Phrase, language: string | null, enabled: boolean) {
+type TranslationSource = Pick<Phrase, "id" | "text">;
+
+function useTranslationQuery<T>(
+  phrases: readonly TranslationSource[],
+  language: string | null,
+  enabled: boolean,
+  select: (translations: Record<string, string>) => T,
+) {
   return useQuery({
-    queryKey: ["translation", language?.toLowerCase(), phrase.id],
+    queryKey: ["translation", language?.toLowerCase(), ...phrases.map((phrase) => phrase.id)],
     enabled: !!language && enabled,
     staleTime: Infinity,
     gcTime: Infinity,
     retry: false,
+    select,
     queryFn: async () => {
       const lang = language!;
-      const cached = readCache(lang)[phrase.id];
-      if (cached) return cached;
-      const res = await translatePhrases({ data: { language: lang, phrases: [{ id: phrase.id, text: phrase.text }] } });
+      const cached = readCache(lang);
+      const pending = phrases.filter((phrase) => !cached[phrase.id]);
+      if (!pending.length) return cached;
+      const res = await translatePhrases({ data: { language: lang, phrases: pending } });
       if (!res.ok) throw new Error(res.error);
       writeCache(lang, res.translations);
-      return res.translations[phrase.id] ?? "";
+      return { ...cached, ...res.translations };
     },
   });
+}
+
+export function usePhraseTranslation(
+  phrase: TranslationSource,
+  language: string | null,
+  enabled: boolean,
+) {
+  return useTranslationQuery(
+    [phrase],
+    language,
+    enabled,
+    (translations) => translations[phrase.id] ?? "",
+  );
+}
+
+export function useTextTranslations(phrases: readonly TranslationSource[], language: string) {
+  return useTranslationQuery(phrases, language, true, (translations) => translations);
 }

@@ -1,3 +1,4 @@
+import { WordMatchReview } from "@/components/speakup/WordMatchReview";
 import { createFileRoute } from "@tanstack/react-router";
 import { BookOpen, Search } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
@@ -178,6 +179,7 @@ function Dictionary() {
                 <div role="status" className="mt-3 rounded-xl bg-primary-soft p-3 text-sm">
                   <p className="font-bold">{attempt.score}% word match</p>
                   <p className="mt-1 text-muted-foreground">Transcript: {attempt.transcript}</p>
+                  <WordMatchReview result={attempt} />
                 </div>
               )}
             </section>

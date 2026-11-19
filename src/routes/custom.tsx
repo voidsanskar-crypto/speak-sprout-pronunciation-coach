@@ -1,3 +1,4 @@
+import { WordMatchReview } from "@/components/speakup/WordMatchReview";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowLeft, RotateCcw } from "lucide-react";
@@ -71,6 +72,7 @@ function CustomPractice() {
               <p className="mt-1 text-sm text-muted-foreground">
                 We heard: “{result.transcript || "No clear speech"}”
               </p>
+              <WordMatchReview result={result} />
               <Button className="mt-3" variant="soft" onClick={() => setResult(null)}>
                 <RotateCcw /> Try again
               </Button>

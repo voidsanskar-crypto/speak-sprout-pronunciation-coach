@@ -1,3 +1,4 @@
+import { WordMatchReview } from "@/components/speakup/WordMatchReview";
 import { ArrowRight, Check, Minus, RotateCcw, Snail, Volume2, X, Zap } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Mascot } from "@/components/speakup/Mascot";
@@ -149,13 +150,14 @@ export function PracticeFeedback({
         <div className="mt-4 space-y-1 rounded-2xl bg-muted px-4 py-3 text-sm">
           <p className="text-xs font-bold text-muted-foreground">Transcript used for scoring</p>
           <p className="break-words font-medium">{result.transcript}</p>
-          {result.extraWordCount > 0 && (
-            <p className="text-xs text-muted-foreground">
-              {result.extraWordCount} extra {result.extraWordCount === 1 ? "word" : "words"}{" "}
-              detected
-            </p>
-          )}
         </div>
+        <WordMatchReview
+          result={result}
+          onReplay={(word) => {
+            recording.current?.pause();
+            speak(word, { slow: true });
+          }}
+        />
         {review && (
           <Button
             variant="ghost"

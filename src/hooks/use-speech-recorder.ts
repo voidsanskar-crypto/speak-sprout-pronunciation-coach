@@ -18,6 +18,7 @@ function isAndroid() {
 
 export function useSpeechRecorder(
   onResult: (alternatives: string[], recordingUrl?: string) => void,
+  { captureAudio = true }: { captureAudio?: boolean } = {},
 ) {
   const [status, setStatus] = useState<RecorderStatus>("idle");
   const [interim, setInterim] = useState("");
@@ -81,7 +82,7 @@ export function useSpeechRecorder(
     setStatus("requesting");
 
     // Live waveform via the mic stream (skipped on Android, where it can block recognition).
-    if (navigator.mediaDevices?.getUserMedia && !isAndroid()) {
+    if (captureAudio && navigator.mediaDevices?.getUserMedia && !isAndroid()) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         streamRef.current = stream;
@@ -235,7 +236,7 @@ export function useSpeechRecorder(
       setStatus("idle");
       setError({ kind: "other", message: "Couldn't start listening. Please try again." });
     }
-  }, [status, cleanupAudio]);
+  }, [status, cleanupAudio, captureAudio]);
 
   const stop = useCallback(() => {
     recRef.current?.stop();

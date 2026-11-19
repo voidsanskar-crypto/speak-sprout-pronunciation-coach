@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Flame, Mic, Sprout, Zap } from "lucide-react";
+import { ArrowRight, Backpack, Flame, Mic, Sprout, Zap } from "lucide-react";
 import { Mascot } from "@/components/speakup/Mascot";
 import { MobileShell } from "@/components/speakup/MobileShell";
 import { PracticeTools } from "@/components/speakup/PracticeTools";
@@ -116,6 +116,23 @@ function Home() {
           </div>
         </section>
       </div>
+
+      <section className="mt-7 flex flex-wrap items-center gap-3 rounded-[1.5rem] border border-primary/20 bg-primary-soft p-4 sm:p-5">
+        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-card text-primary">
+          <Backpack aria-hidden="true" className="size-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className="font-display text-xl font-semibold">Pack for the train</h2>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Tell Kiki where to pack each item and watch what she does.
+          </p>
+        </div>
+        <Button asChild variant="hero" className="w-full rounded-xl sm:w-auto">
+          <Link to="/mission">
+            Try the speaking mission <ArrowRight aria-hidden="true" />
+          </Link>
+        </Button>
+      </section>
 
       <section className="mt-7">
         <h2 className="mb-3 font-display text-2xl font-semibold">Practice tools</h2>

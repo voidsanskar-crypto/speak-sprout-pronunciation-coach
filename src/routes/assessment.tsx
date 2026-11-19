@@ -1,3 +1,4 @@
+import { WordMatchReview } from "@/components/speakup/WordMatchReview";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowRight, Home, RotateCcw } from "lucide-react";
@@ -63,6 +64,7 @@ function Assessment() {
               <p className="mt-1 text-sm text-muted-foreground">
                 We heard: “{last.transcript || "No clear speech"}”
               </p>
+              <WordMatchReview result={last} />
               <Button className="mt-3 w-full" variant="hero" onClick={advance}>
                 {index === 4 ? "See my level" : "Next phrase"}
                 <ArrowRight />
