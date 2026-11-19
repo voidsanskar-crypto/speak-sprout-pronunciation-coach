@@ -157,8 +157,8 @@ export function scoreBest(targetText: string, alternatives: string[]): ScoreResu
 }
 
 export function scoreLabel(score: number): string {
-  if (score >= 90) return "Native-like!";
-  if (score >= 75) return "Great job";
-  if (score >= 55) return "Getting there";
+  if (score >= 90) return "Excellent match";
+  if (score >= 75) return "Strong match";
+  if (score >= 55) return "Partial match";
   return "Keep practicing";
 }

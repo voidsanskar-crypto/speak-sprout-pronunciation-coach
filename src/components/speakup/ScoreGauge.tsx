@@ -8,7 +8,7 @@ export function scoreTone(score: number) {
   return "text-danger";
 }
 
-export function ScoreGauge({ score }: { score: number }) {
+export function ScoreGauge({ score, caption = "word match" }: { score: number; caption?: string }) {
   const [shown, setShown] = useState(0);
   useEffect(() => {
     let raf = 0;
@@ -28,7 +28,7 @@ export function ScoreGauge({ score }: { score: number }) {
     <div className="flex flex-col items-center animate-pop-in">
       <Ring value={shown / 100} size={190} stroke={16} barClassName={scoreTone(score)} trackClassName="text-muted">
         <span className="font-display text-6xl font-bold leading-none">{shown}</span>
-        <span className="mt-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">score</span>
+        <span className="mt-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">{caption}</span>
       </Ring>
       <p className={`mt-3 font-display text-2xl font-semibold ${scoreTone(score)}`}>{scoreLabel(score)}</p>
     </div>

@@ -38,6 +38,8 @@ import { SOUND_IDS, SOUNDS, type SoundId } from "@/lib/sounds";
 import { canSpeak, speak, stopSpeaking } from "@/lib/speech";
 import { getTopic, TOPICS, type TopicId } from "@/lib/topics";
 import { cn } from "@/lib/utils";
+import { azurePronunciationAssessment, type PronunciationAssessment } from "@/lib/ai/groq.functions";
+import { recordingUrlToWavBase64 } from "@/lib/audio";
 
 interface PracticeSearch {
   topic?: TopicId | undefined;
@@ -82,6 +84,8 @@ function Practice() {
   const [stage, setStage] = useState<Stage>("practice");
   const [result, setResult] = useState<ScoreResult | null>(null);
   const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
+  const [acousticAssessment, setAcousticAssessment] = useState<PronunciationAssessment | null>(null);
+  const [assessmentState, setAssessmentState] = useState<"idle" | "loading" | "ready" | "unavailable">("idle");
   const [sessionScores, setSessionScores] = useState<number[]>([]);
   useEffect(() => {
     setQueue(buildQueue({ topic, sound }, getProgressSnapshot()));
@@ -89,6 +93,8 @@ function Practice() {
     setStage("practice");
     setResult(null);
     setRecordingUrl(null);
+    setAcousticAssessment(null);
+    setAssessmentState("idle");
     setSessionScores([]);
   }, [topic, sound]);
 
@@ -112,6 +118,8 @@ function Practice() {
     if (recordingUrl) URL.revokeObjectURL(recordingUrl);
     setRecordingUrl(null);
     setResult(null);
+    setAcousticAssessment(null);
+    setAssessmentState("idle");
     if (!queue) return;
     if (index + 1 >= queue.length) {
       setStage("summary");
@@ -122,14 +130,42 @@ function Practice() {
   }, [index, queue, recordingUrl]);
 
   const handleResult = useCallback(
-    (alts: string[], recordingUrl?: string) => {
+    (alts: string[], clipUrl?: string) => {
       if (!phrase) return;
       const r = scoreBest(phrase.text, alts);
-      recordAttempt({ phraseId: phrase.id, score: r.score, words: r.words });
-      setSessionScores((s) => [...s, r.score]);
       setResult(r);
-      setRecordingUrl(recordingUrl ?? null);
+      setRecordingUrl(clipUrl ?? null);
       setStage("feedback");
+      setAcousticAssessment(null);
+      if (!clipUrl) {
+        recordAttempt({ phraseId: phrase.id, score: r.score, words: r.words });
+        setSessionScores((s) => [...s, r.score]);
+        setAssessmentState("unavailable");
+        return;
+      }
+      setAssessmentState("loading");
+      void (async () => {
+        try {
+          const audioBase64 = await recordingUrlToWavBase64(clipUrl);
+          const response = await azurePronunciationAssessment({ data: { referenceText: phrase.text, audioBase64 } });
+          if (response.ok) {
+            const score = response.assessment.pronunciationScore ?? response.assessment.accuracyScore ?? r.score;
+            setAcousticAssessment(response.assessment);
+            recordAttempt({ phraseId: phrase.id, score, words: r.words });
+            setSessionScores((s) => [...s, score]);
+            setAssessmentState("ready");
+          } else {
+            recordAttempt({ phraseId: phrase.id, score: r.score, words: r.words });
+            setSessionScores((s) => [...s, r.score]);
+            setAssessmentState("unavailable");
+          }
+        } catch (error) {
+          console.error("Azure pronunciation assessment unavailable", error);
+          recordAttempt({ phraseId: phrase.id, score: r.score, words: r.words });
+          setSessionScores((s) => [...s, r.score]);
+          setAssessmentState("unavailable");
+        }
+      })();
     },
     [phrase],
   );
@@ -172,10 +208,14 @@ function Practice() {
           phrase={phrase}
           result={result}
           recordingUrl={recordingUrl}
+          acousticAssessment={acousticAssessment}
+          assessmentState={assessmentState}
           onRetry={() => {
             setResult(null);
             if (recordingUrl) URL.revokeObjectURL(recordingUrl);
             setRecordingUrl(null);
+            setAcousticAssessment(null);
+            setAssessmentState("idle");
             setStage("practice");
           }}
           onContinue={next}
@@ -424,6 +464,8 @@ function Feedback({
   phrase,
   result,
   recordingUrl,
+  acousticAssessment,
+  assessmentState,
   onRetry,
   onContinue,
   isLast,
@@ -431,6 +473,8 @@ function Feedback({
   phrase: Phrase;
   result: ScoreResult;
   recordingUrl: string | null;
+  acousticAssessment: PronunciationAssessment | null;
+  assessmentState: "idle" | "loading" | "ready" | "unavailable";
   onRetry: () => void;
   onContinue: () => void;
   isLast: boolean;
@@ -452,15 +496,21 @@ function Feedback({
     close: result.words.filter((w) => w.status === "close").length,
     missed: result.words.filter((w) => w.status === "missed").length,
   };
+  const coachScore = acousticAssessment?.pronunciationScore ?? acousticAssessment?.accuracyScore ?? result.score;
 
   return (
     <div className="mt-6 flex flex-col items-center">
       <div className="relative w-full rounded-[2rem] bg-card p-6 pt-8 shadow-card animate-pop-in">
         <Mascot
-          mood={result.score >= 75 ? "cheer" : "wave"}
+          mood={coachScore >= 75 ? "cheer" : "wave"}
           className="absolute right-2 top-2 w-20 animate-float"
         />
-        <ScoreGauge score={result.score} />
+        <ScoreGauge score={coachScore} caption={acousticAssessment ? "Azure acoustic score" : "word match"} />
+        {assessmentState === "loading" && <p className="mt-3 text-center text-sm text-muted-foreground">Analyzing your recorded sounds…</p>}
+        {acousticAssessment && <div className="mt-4 grid grid-cols-2 gap-2 text-center text-sm sm:grid-cols-4">
+          {[['Accuracy', acousticAssessment.accuracyScore], ['Fluency', acousticAssessment.fluencyScore], ['Prosody', acousticAssessment.prosodyScore], ['Completeness', acousticAssessment.completenessScore]].map(([label, value]) => <div key={String(label)} className="rounded-xl bg-muted px-2 py-2"><p className="text-xs text-muted-foreground">{label}</p><p className="font-bold">{value === null ? '—' : `${value}%`}</p></div>)}
+        </div>}
+        {acousticAssessment && acousticAssessment.words.some((word) => word.phonemes.some((phoneme) => phoneme.accuracy !== null && phoneme.accuracy < 75)) && <div className="mt-4 rounded-2xl border border-warning/30 bg-warning-soft p-4 text-sm"><p className="font-bold">Sounds to practice</p><div className="mt-2 flex flex-wrap gap-2">{acousticAssessment.words.flatMap((word) => word.phonemes.filter((phoneme) => phoneme.accuracy !== null && phoneme.accuracy < 75).map((phoneme, i) => <span key={`${word.word}-${phoneme.phoneme}-${i}`} className="rounded-lg bg-card px-2 py-1">{word.word}: /{phoneme.phoneme}/ {phoneme.likelySound && phoneme.likelySound !== phoneme.phoneme ? `→ /${phoneme.likelySound}/` : ''} ({phoneme.accuracy}%)</span>))}</div></div>}
         <div className="mt-4 rounded-2xl bg-primary-soft p-4 text-sm leading-relaxed">
           <p className="font-bold">Your practice feedback</p>
           <p className="mt-1">{result.score >= 85
@@ -468,18 +518,18 @@ function Feedback({
             : result.score >= 55
               ? `The recognizer matched ${counts.correct} words, marked ${counts.close} as close, and missed ${counts.missed}. Tap the highlighted words for specific mouth-position tips, then retry the whole sentence.`
               : `The recognizer matched ${counts.correct} words and missed ${counts.missed}. Try listening to the example once slowly, practice the missed words individually, and record again in a quiet place.`}</p>
-          <p className="mt-2 text-xs text-muted-foreground">Scores reflect recognized words and can be affected by accent, microphone, and background noise. They do not measure phoneme accuracy.</p>
+          <p className="mt-2 text-xs text-muted-foreground">{acousticAssessment ? "Azure evaluated the recorded audio against the prompt. Phoneme and prosody scores are automated estimates and can vary with accent, microphone, and background noise." : "This fallback score compares recognized words with the prompt. It cannot verify that each sound was pronounced correctly."}</p>
         </div>
         <div className="mt-2 flex justify-center">
           <span className="inline-flex items-center gap-1 rounded-full bg-warning-soft px-3 py-1 text-sm font-extrabold">
-            <Zap className="size-4 fill-sun text-sun" /> +{xpForScore(result.score)} XP
+            <Zap className="size-4 fill-sun text-sun" /> +{xpForScore(coachScore)} XP
           </span>
         </div>
 
         <p className="mt-6 text-center text-xs font-extrabold uppercase tracking-widest text-muted-foreground">
           Tap a word for tips
         </p>
-        <p className="mb-3 text-center text-xs text-muted-foreground">This score compares recognized words with the prompt. It is not a phoneme-level pronunciation measurement.</p>
+        <p className="mb-3 text-center text-xs text-muted-foreground">Recognized words from speech-to-text (separate from the acoustic score above).</p>
         <div className="mt-3 flex flex-wrap justify-center gap-2">
           {words.map((w, i) => {
             const r = result.words[i];
@@ -529,7 +579,7 @@ function Feedback({
         <Button variant="soft" size="xl" onClick={onRetry}>
           <RotateCcw /> Try again
         </Button>
-        <Button variant="hero" size="xl" onClick={onContinue}>
+        <Button variant="hero" size="xl" onClick={onContinue} disabled={assessmentState === "loading"}>
           {isLast ? "Finish" : "Continue"} <ArrowRight />
         </Button>
       </div>
