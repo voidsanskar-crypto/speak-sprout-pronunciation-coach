@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Flame, MessageCircle, Play, Sparkles, Zap } from "lucide-react";
+import { Flame, MessageCircle, Play, Sparkles, Zap, UserRound } from "lucide-react";
 import { MobileShell } from "@/components/speakup/MobileShell";
 import { Mascot } from "@/components/speakup/Mascot";
 import { Ring } from "@/components/speakup/Ring";
@@ -71,7 +71,7 @@ function Home() {
             </span>
           </div>
         </div>
-        <Mascot eager className="-mr-2 -mt-2 w-32 animate-float" />
+        <div className="flex flex-col items-center"><Link to="/login" aria-label="Profile" className="mb-1 rounded-full bg-card p-2 text-primary shadow-soft"><UserRound className="size-5"/></Link><Mascot eager className="-mr-2 -mt-2 w-32 animate-float" /></div>
       </header>
 
       <section className="mt-5 flex items-center gap-5 rounded-[2rem] bg-card p-5 shadow-card animate-rise [animation-delay:80ms]">

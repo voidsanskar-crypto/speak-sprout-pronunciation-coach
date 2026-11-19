@@ -14,6 +14,7 @@ import { Route as AssessmentRouteImport } from './routes/assessment'
 import { Route as CustomRouteImport } from './routes/custom'
 import { Route as DialogueRouteImport } from './routes/dialogue'
 import { Route as DictionaryRouteImport } from './routes/dictionary'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as PracticeRouteImport } from './routes/practice'
 import { Route as ProgressRouteImport } from './routes/progress'
 import { Route as SkillsRouteImport } from './routes/skills'
@@ -43,6 +44,11 @@ const DictionaryRoute = DictionaryRouteImport.update({
   path: '/dictionary',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PracticeRoute = PracticeRouteImport.update({
   id: '/practice',
   path: '/practice',
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/custom': typeof CustomRoute
   '/dialogue': typeof DialogueRoute
   '/dictionary': typeof DictionaryRoute
+  '/login': typeof LoginRoute
   '/practice': typeof PracticeRoute
   '/progress': typeof ProgressRoute
   '/skills': typeof SkillsRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/custom': typeof CustomRoute
   '/dialogue': typeof DialogueRoute
   '/dictionary': typeof DictionaryRoute
+  '/login': typeof LoginRoute
   '/practice': typeof PracticeRoute
   '/progress': typeof ProgressRoute
   '/skills': typeof SkillsRoute
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/custom': typeof CustomRoute
   '/dialogue': typeof DialogueRoute
   '/dictionary': typeof DictionaryRoute
+  '/login': typeof LoginRoute
   '/practice': typeof PracticeRoute
   '/progress': typeof ProgressRoute
   '/skills': typeof SkillsRoute
@@ -98,6 +107,7 @@ export interface FileRouteTypes {
     | '/custom'
     | '/dialogue'
     | '/dictionary'
+    | '/login'
     | '/practice'
     | '/progress'
     | '/skills'
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/custom'
     | '/dialogue'
     | '/dictionary'
+    | '/login'
     | '/practice'
     | '/progress'
     | '/skills'
@@ -118,6 +129,7 @@ export interface FileRouteTypes {
     | '/custom'
     | '/dialogue'
     | '/dictionary'
+    | '/login'
     | '/practice'
     | '/progress'
     | '/skills'
@@ -129,6 +141,7 @@ export interface RootRouteChildren {
   CustomRoute: typeof CustomRoute
   DialogueRoute: typeof DialogueRoute
   DictionaryRoute: typeof DictionaryRoute
+  LoginRoute: typeof LoginRoute
   PracticeRoute: typeof PracticeRoute
   ProgressRoute: typeof ProgressRoute
   SkillsRoute: typeof SkillsRoute
@@ -171,6 +184,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DictionaryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/practice': {
       id: '/practice'
       path: '/practice'
@@ -201,6 +221,7 @@ const rootRouteChildren: RootRouteChildren = {
   CustomRoute: CustomRoute,
   DialogueRoute: DialogueRoute,
   DictionaryRoute: DictionaryRoute,
+  LoginRoute: LoginRoute,
   PracticeRoute: PracticeRoute,
   ProgressRoute: ProgressRoute,
   SkillsRoute: SkillsRoute,
