@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { CalendarClock, Check, RotateCcw, Volume2 } from "lucide-react";
+import { Bookmark, CalendarClock, Check, RotateCcw, Volume2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { SpeechPrompt } from "@/components/speakup/SpeechPrompt";
 import { WordMatchReview } from "@/components/speakup/WordMatchReview";
@@ -9,6 +9,7 @@ import { useHydrated } from "@/hooks/use-hydrated";
 import { reviewDeckWord, useProgress } from "@/hooks/use-progress";
 import type { ScoreResult } from "@/lib/scoring";
 import { toDateKey } from "@/lib/progress";
+import { cn } from "@/lib/utils";
 import { canSpeak, speak, stopSpeaking } from "@/lib/speech";
 
 export const Route = createFileRoute("/review")({
@@ -29,10 +30,14 @@ function ReviewDeck() {
   const [revealedWord, setRevealedWord] = useState<string | null>(null);
   const [reviewResult, setReviewResult] = useState<ScoreResult | null>(null);
   const [feedback, setFeedback] = useState("");
+  const [departing, setDeparting] = useState<{ word: string; remembered: boolean } | null>(null);
   useEffect(() => stopSpeaking, []);
 
   function rate(word: string, remembered: boolean) {
     stopSpeaking();
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setDeparting({ word, remembered });
+    }
     reviewDeckWord(word, remembered);
     setRevealedWord(null);
     setReviewResult(null);
@@ -50,80 +55,92 @@ function ReviewDeck() {
             <h1 className="font-display text-3xl font-bold sm:text-4xl">Personal Review Deck</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Words under 70% word match from Practice, the Speaking Check, Your Own Text, and
-              dialogue reply drills show up here.
+              dialogue reply drills show up here. Minimal Pairs recordings can add cards too.
             </p>
           </div>
         </header>
 
-        <section className="mt-5 rounded-[1.5rem] border border-border bg-card p-5 sm:p-6">
+        <section className="relative mt-5 isolate overflow-hidden rounded-[1.5rem] border border-border bg-card p-4 sm:p-6">
           <h2 className="font-display text-xl font-semibold">Due today</h2>
           {active ? (
             <>
               <p className="mt-1 text-sm font-bold text-primary">
                 {due.length} {due.length === 1 ? "word" : "words"} to review
               </p>
-              <div className="mt-4 space-y-3 rounded-2xl bg-primary-soft p-4">
-                <p className="text-sm font-semibold">
-                  Listen first, then reveal the word and record yourself. Three green reviews in a
-                  row clear the card.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="soft"
-                    onClick={() => {
-                      if (canSpeak()) {
-                        setFeedback("");
-                        speak(active.word);
-                      } else
-                        setFeedback(
-                          "Audio is unavailable in this browser. You can still reveal and review the word.",
-                        );
-                    }}
-                  >
-                    <Volume2 aria-hidden="true" /> Hear the word
-                  </Button>
-                  {revealedWord !== active.word && (
+              <div
+                className="review-stack relative isolate mb-4 mt-6"
+                data-layered={due.length > 1}
+              >
+                <div
+                  key={active.word}
+                  className="relative space-y-3 rounded-2xl border border-primary/25 bg-primary-soft p-4 shadow-card"
+                >
+                  <p className="text-sm font-semibold">
+                    Listen first, then reveal the word and record yourself. Three green reviews in a
+                    row clear the card.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       type="button"
                       variant="soft"
-                      onClick={() => setRevealedWord(active.word)}
+                      onClick={() => {
+                        if (canSpeak()) {
+                          setFeedback("");
+                          speak(active.word);
+                        } else
+                          setFeedback(
+                            "Audio is unavailable in this browser. You can still reveal and review the word.",
+                          );
+                      }}
                     >
-                      Reveal word
+                      <Volume2 aria-hidden="true" /> Hear the word
                     </Button>
+                    {revealedWord !== active.word && (
+                      <Button
+                        type="button"
+                        variant="soft"
+                        onClick={() => setRevealedWord(active.word)}
+                      >
+                        Reveal word
+                      </Button>
+                    )}
+                  </div>
+                  {revealedWord === active.word && (
+                    <>
+                      <SpeechPrompt
+                        key={active.word}
+                        text={active.word}
+                        onScore={setReviewResult}
+                      />
+                      {reviewResult && (
+                        <>
+                          <p role="status" className="text-sm font-bold">
+                            {reviewResult.words[0]?.status === "correct"
+                              ? "Green match. Save this review to continue your streak."
+                              : "The word didn’t match. You can retry now or review it again tomorrow."}
+                          </p>
+                          <WordMatchReview result={reviewResult} />
+                          <Button
+                            type="button"
+                            variant="hero"
+                            onClick={() =>
+                              rate(active.word, reviewResult.words[0]?.status === "correct")
+                            }
+                          >
+                            {reviewResult.words[0]?.status === "correct" ? (
+                              <Check aria-hidden="true" />
+                            ) : (
+                              <RotateCcw aria-hidden="true" />
+                            )}
+                            {reviewResult.words[0]?.status === "correct"
+                              ? "Save green review"
+                              : "Review tomorrow"}
+                          </Button>
+                        </>
+                      )}
+                    </>
                   )}
                 </div>
-                {revealedWord === active.word && (
-                  <>
-                    <SpeechPrompt key={active.word} text={active.word} onScore={setReviewResult} />
-                    {reviewResult && (
-                      <>
-                        <p role="status" className="text-sm font-bold">
-                          {reviewResult.words[0]?.status === "correct"
-                            ? "Green match. Save this review to continue your streak."
-                            : "The word didn’t match. You can retry now or review it again tomorrow."}
-                        </p>
-                        <WordMatchReview result={reviewResult} />
-                        <Button
-                          type="button"
-                          variant="hero"
-                          onClick={() =>
-                            rate(active.word, reviewResult.words[0]?.status === "correct")
-                          }
-                        >
-                          {reviewResult.words[0]?.status === "correct" ? (
-                            <Check aria-hidden="true" />
-                          ) : (
-                            <RotateCcw aria-hidden="true" />
-                          )}
-                          {reviewResult.words[0]?.status === "correct"
-                            ? "Save green review"
-                            : "Review tomorrow"}
-                        </Button>
-                      </>
-                    )}
-                  </>
-                )}
               </div>
             </>
           ) : hydrated ? (
@@ -139,6 +156,26 @@ function ReviewDeck() {
             </>
           ) : (
             <p className="mt-2 text-sm text-muted-foreground">Loading your deck…</p>
+          )}
+          {departing && (
+            <div
+              key={departing.word}
+              aria-hidden="true"
+              onAnimationEnd={() => setDeparting(null)}
+              className={cn(
+                "review-card-exit pointer-events-none absolute inset-x-5 top-20 z-10 grid min-h-32 place-content-center justify-items-center gap-2 rounded-2xl border p-4 shadow-pop",
+                departing.remembered
+                  ? "border-success/30 bg-success-soft text-success"
+                  : "review-card-exit-left border-primary/30 bg-primary-soft text-primary",
+              )}
+            >
+              {departing.remembered ? (
+                <Check className="size-9" />
+              ) : (
+                <Bookmark className="size-9" />
+              )}
+              <span className="font-display text-xl font-bold">{departing.word}</span>
+            </div>
           )}
           <p role="status" className={feedback ? "mt-3 text-sm text-muted-foreground" : "sr-only"}>
             {feedback}

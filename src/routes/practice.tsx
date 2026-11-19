@@ -217,7 +217,34 @@ function PracticeCard({
   onResult: (alts: string[], recordingUrl?: string) => void;
   onNext: () => void;
 }) {
-  const recorder = useSpeechRecorder(onResult);
+  const [analyzing, setAnalyzing] = useState(false);
+  const pendingResult = useRef<{
+    timer: ReturnType<typeof setTimeout>;
+    clip: string | undefined;
+  } | null>(null);
+  const skipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (skipTimer.current !== null) clearTimeout(skipTimer.current);
+      const pending = pendingResult.current;
+      if (!pending) return;
+      clearTimeout(pending.timer);
+      if (pending.clip) URL.revokeObjectURL(pending.clip);
+    },
+    [],
+  );
+
+  const recorder = useSpeechRecorder((alternatives, clip) => {
+    setAnalyzing(true);
+    const timer = setTimeout(
+      () => {
+        pendingResult.current = null;
+        onResult(alternatives, clip);
+      },
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 440,
+    );
+    pendingResult.current = { timer, clip };
+  });
   const [slow, setSlow] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [showTr, setShowTr] = useState(false);
@@ -230,9 +257,10 @@ function PracticeCard({
   const [leaving, setLeaving] = useState(false);
 
   const skip = () => {
+    if (pendingResult.current || skipTimer.current !== null) return;
     recorder.cancel();
     setLeaving(true);
-    setTimeout(onNext, 220);
+    skipTimer.current = setTimeout(onNext, 220);
   };
 
   const listen = () => {
@@ -249,7 +277,8 @@ function PracticeCard({
     setShowTr((s) => !s);
   };
 
-  const listening = recorder.status === "listening";
+  const status = analyzing ? "processing" : recorder.status;
+  const listening = status === "listening";
 
   return (
     <div className="mt-6 flex flex-col items-center">
@@ -327,7 +356,7 @@ function PracticeCard({
             size="pill"
             className="flex-1"
             onClick={listen}
-            disabled={listening}
+            disabled={listening || analyzing || leaving}
           >
             <Volume2 className={cn(playing && "animate-wiggle")} />{" "}
             {playing ? "Playing…" : "Listen"}
@@ -370,24 +399,23 @@ function PracticeCard({
           />
         ) : (
           <div className="flex min-h-20 flex-col items-center justify-center">
-            <Waveform
-              active={listening}
-              analyser={recorder.analyser}
-              speaking={recorder.speaking}
-            />
+            <Waveform status={status} analyser={recorder.analyser} speaking={recorder.speaking} />
             <p
+              role="status"
               className={cn(
                 "mt-1 min-h-6 text-center text-base font-semibold",
                 recorder.interim ? "text-foreground" : "text-muted-foreground",
               )}
             >
-              {recorder.interim
-                ? `“${recorder.interim}”`
-                : listening
-                  ? "Listening… say the phrase"
-                  : recorder.status === "requesting"
-                    ? "Getting the mic ready…"
-                    : "Tap the mic and read the phrase aloud"}
+              {analyzing
+                ? "Analyzing…"
+                : recorder.interim
+                  ? `“${recorder.interim}”`
+                  : listening
+                    ? "Listening… say the phrase"
+                    : recorder.status === "requesting"
+                      ? "Getting the mic ready…"
+                      : "Tap the mic and read the phrase aloud"}
             </p>
           </div>
         )}
@@ -396,14 +424,15 @@ function PracticeCard({
       <div className="mt-4 grid w-full grid-cols-3 items-center">
         <span />
         <div className="flex justify-center">
-          <MicButton
-            status={recorder.status}
-            onStart={() => void recorder.start()}
-            onStop={recorder.stop}
-          />
+          <MicButton status={status} onStart={() => void recorder.start()} onStop={recorder.stop} />
         </div>
         <div className="flex justify-end">
-          <Button variant="soft" size="pill" onClick={skip} disabled={listening}>
+          <Button
+            variant="soft"
+            size="pill"
+            onClick={skip}
+            disabled={listening || analyzing || leaving}
+          >
             Next <SkipForward />
           </Button>
         </div>

@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Backpack, CalendarClock, Flame, Mic, Sprout, Zap } from "lucide-react";
+import { ArrowRight, Backpack, CalendarClock, Mic, Sprout } from "lucide-react";
 import { Mascot } from "@/components/speakup/Mascot";
 import { MobileShell } from "@/components/speakup/MobileShell";
 import { PracticeTools } from "@/components/speakup/PracticeTools";
@@ -7,10 +7,11 @@ import { Ring } from "@/components/speakup/Ring";
 import { TopicCard } from "@/components/speakup/TopicCard";
 import { Button } from "@/components/ui/button";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { useLocalProfile } from "@/hooks/use-local-profile";
 import { useProgress } from "@/hooks/use-progress";
 import { loadAssessment } from "@/lib/assessment";
 import { PHRASES, phrasesForTopic } from "@/lib/phrases";
-import { currentStreak, DAILY_GOAL, masteredIds, phrasesDoneOn, toDateKey } from "@/lib/progress";
+import { DAILY_GOAL, masteredIds, phrasesDoneOn, toDateKey } from "@/lib/progress";
 import { SOUNDS, SOUND_IDS } from "@/lib/sounds";
 import { TOPICS } from "@/lib/topics";
 
@@ -38,10 +39,10 @@ export const Route = createFileRoute("/")({
 
 function Home() {
   const progress = useProgress();
+  const profile = useLocalProfile();
   const hydrated = useHydrated();
   const today = hydrated ? toDateKey(new Date()) : "";
   const done = hydrated ? phrasesDoneOn(progress, today) : 0;
-  const streak = hydrated ? currentStreak(progress, today) : 0;
   const assessment = hydrated ? loadAssessment() : null;
   const mastered = new Set(masteredIds(progress));
   const goalReached = done >= DAILY_GOAL;
@@ -64,8 +65,8 @@ function Home() {
               <Sprout aria-hidden="true" className="size-4" />
               {assessment ? `${assessment.level} practice plan` : "Your daily session"}
             </p>
-            <h1 className="mt-3 font-display text-3xl font-bold leading-[1.05] sm:text-4xl">
-              Daily speaking practice
+            <h1 className="mt-3 font-display text-3xl font-bold leading-[1.05] [overflow-wrap:anywhere] sm:text-4xl">
+              {profile ? `Welcome back, ${profile.name}!` : "Daily speaking practice"}
             </h1>
             <p className="mt-3 max-w-44 text-sm leading-relaxed text-muted-foreground sm:max-w-60">
               Hear each phrase, record your version, and review what the browser heard.
@@ -106,14 +107,6 @@ function Home() {
                 </span>
               </Ring>
             </div>
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-2 border-t border-border pt-4 text-sm font-bold">
-            <span className="flex items-center gap-2">
-              <Flame aria-hidden="true" className="size-4 text-flame" /> {streak}-day streak
-            </span>
-            <span className="flex items-center gap-2">
-              <Zap aria-hidden="true" className="size-4 text-primary" /> {progress.xp} XP
-            </span>
           </div>
         </section>
       </div>

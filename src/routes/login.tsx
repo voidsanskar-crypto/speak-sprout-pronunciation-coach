@@ -1,11 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { UserRound } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { MobileShell } from "@/components/speakup/MobileShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-const KEY = "speakup:profile:v1";
+import {
+  clearLocalProfile,
+  saveLocalProfile,
+  useLocalProfile,
+  type Profile,
+} from "@/hooks/use-local-profile";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Local profile — Speak Sprout" }] }),
@@ -13,32 +18,35 @@ export const Route = createFileRoute("/login")({
 });
 
 function LocalProfile() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "saved" | "failed">("idle");
+  const profile = useLocalProfile();
+  const [draft, setDraft] = useState<Profile | null>(null);
+  const [status, setStatus] = useState("");
+  const nameInput = useRef<HTMLInputElement>(null);
+  const fields = draft ?? profile ?? { name: "", email: "" };
 
-  useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem(KEY) ?? "null") as {
-        name?: string;
-        email?: string;
-      } | null;
-      if (typeof stored?.name === "string") setName(stored.name);
-      if (typeof stored?.email === "string") setEmail(stored.email);
-    } catch {
-      // An unavailable or unreadable profile can be replaced by saving the form.
-    }
-  }, []);
+  function updateField(field: keyof Profile, value: string) {
+    setDraft({ ...fields, [field]: value });
+    setStatus("");
+  }
 
   function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const cleanName = name.trim();
-    if (!cleanName) return;
-    try {
-      localStorage.setItem(KEY, JSON.stringify({ name: cleanName, email: email.trim() }));
-      setStatus("saved");
-    } catch {
-      setStatus("failed");
+    if (!fields.name.trim()) return;
+    if (saveLocalProfile(fields)) {
+      setDraft(null);
+      setStatus("Profile saved.");
+    } else {
+      setStatus("Couldn’t save the profile in this browser.");
+    }
+  }
+
+  function clear() {
+    if (clearLocalProfile()) {
+      setDraft(null);
+      setStatus("Local profile cleared.");
+      nameInput.current?.focus();
+    } else {
+      setStatus("Couldn’t clear the profile in this browser.");
     }
   }
 
@@ -61,15 +69,13 @@ function LocalProfile() {
           </label>
           <Input
             id="profile-name"
+            ref={nameInput}
             className="mt-1"
             autoComplete="name"
             maxLength={80}
             required
-            value={name}
-            onChange={(event) => {
-              setName(event.target.value);
-              setStatus("idle");
-            }}
+            value={fields.name}
+            onChange={(event) => updateField("name", event.target.value)}
           />
         </div>
         <div>
@@ -81,22 +87,23 @@ function LocalProfile() {
             className="mt-1"
             type="email"
             autoComplete="email"
-            value={email}
-            onChange={(event) => {
-              setEmail(event.target.value);
-              setStatus("idle");
-            }}
+            value={fields.email}
+            onChange={(event) => updateField("email", event.target.value)}
           />
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <Button type="submit" variant="hero" size="pill" disabled={!name.trim()}>
+          <Button type="submit" variant="hero" size="pill" disabled={!fields.name.trim()}>
             Save profile
           </Button>
-          <p role="status" className="text-sm text-muted-foreground">
-            {status === "saved" && "Profile saved."}
-            {status === "failed" && "Couldn’t save the profile in this browser."}
-          </p>
+          {profile && (
+            <Button type="button" variant="soft" size="pill" onClick={clear}>
+              Clear local profile
+            </Button>
+          )}
         </div>
+        <p role="status" className={status ? "text-sm text-muted-foreground" : "sr-only"}>
+          {status}
+        </p>
       </form>
     </MobileShell>
   );

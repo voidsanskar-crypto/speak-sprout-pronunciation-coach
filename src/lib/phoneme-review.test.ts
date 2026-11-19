@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
+import { scoreTranscript } from "./scoring";
 import { dictionarySoundContrast } from "./phoneme-review";
 
 describe("offline sound comparison", () => {
   it("finds the single phoneme contrast between think and sink", () => {
     const comparison = dictionarySoundContrast("Think", "sink");
     expect(comparison?.expected.filter((sound) => sound.different)).toEqual([
-      { sound: "θ", different: true },
+      { phone: "TH", sound: "θ", different: true },
     ]);
     expect(comparison?.heard.filter((sound) => sound.different)).toEqual([
-      { sound: "s", different: true },
+      { phone: "S", sound: "s", different: true },
     ]);
-    expect(comparison?.tip).toBe("TH");
   });
 
   it("handles multicharacter IPA as one sound", () => {
@@ -21,6 +21,17 @@ describe("offline sound comparison", () => {
     expect(comparison?.heard.filter((sound) => sound.different).map(({ sound }) => sound)).toEqual([
       "ɪ",
     ]);
+  });
+
+  it("keeps curly apostrophes in the dictionary lookup without changing word match", () => {
+    const [word] = scoreTranscript("I’LL", "eel").words;
+    expect(word?.targetSpelling).toBe("i'll");
+    const contrast = dictionarySoundContrast(word?.targetSpelling ?? "", word?.heard ?? null);
+    expect(contrast?.expected.map(({ sound }) => sound)).toEqual(["aɪ", "l"]);
+    expect(dictionarySoundContrast("ill", "eel")?.expected[0]?.sound).toBe("ɪ");
+    expect(dictionarySoundContrast("DON’T", "dont")).toBeNull();
+    expect(dictionarySoundContrast("They’re", "their")).toBeNull();
+    expect(dictionarySoundContrast("IT’S", "its")).toBeNull();
   });
 
   it("leaves homophones and unknown words to transcript review", () => {

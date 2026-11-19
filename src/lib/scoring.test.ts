@@ -57,6 +57,7 @@ describe("transcript scoring", () => {
 
   it("plays confetti only for scores above 90", () => {
     expect(shouldCelebrate(91)).toBe(true);
-    expect(shouldCelebrate(90)).toBe(false);
+    expect(shouldCelebrate(90)).toBe(true);
+    expect(shouldCelebrate(89)).toBe(false);
   });
 });

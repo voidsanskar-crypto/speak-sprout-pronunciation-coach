@@ -1,6 +1,10 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { BarChart3, Home, LibraryBig, Mic, Sprout, UserRound } from "lucide-react";
+import { BarChart3, Flame, Home, LibraryBig, Mic, Sprout, UserRound, Zap } from "lucide-react";
+import { useHydrated } from "@/hooks/use-hydrated";
+import { useProgress } from "@/hooks/use-progress";
+import { currentStreak, toDateKey } from "@/lib/progress";
+import { useLocalProfile } from "@/hooks/use-local-profile";
 import { cn } from "@/lib/utils";
 
 const destinations = [
@@ -12,7 +16,12 @@ const destinations = [
 
 export function MobileShell({ children, nav = true }: { children: ReactNode; nav?: boolean }) {
   if (!nav) {
-    return <main className="mx-auto min-h-dvh max-w-xl px-4 pb-10 pt-6 sm:px-6">{children}</main>;
+    return (
+      <div className="mx-auto min-h-dvh max-w-xl">
+        <TopBar />
+        <main className="px-4 pb-10 pt-5 sm:px-6">{children}</main>
+      </div>
+    );
   }
 
   return (
@@ -26,31 +35,73 @@ export function MobileShell({ children, nav = true }: { children: ReactNode; nav
       <aside className="sticky top-0 hidden h-dvh flex-col border-r border-border py-8 pr-5 lg:flex">
         <Brand />
         <Navigation className="mt-12 grid gap-1.5" />
-        <ProfileLink className="mt-auto" />
       </aside>
-      <header className="mx-auto flex max-w-2xl items-center justify-between px-4 pb-1 pt-5 sm:px-6 lg:hidden">
-        <Brand />
-        <ProfileLink compact />
-      </header>
-      <main
-        id="main-content"
-        tabIndex={-1}
-        className="mx-auto min-w-0 max-w-2xl px-4 pb-28 pt-5 outline-none sm:px-6 lg:mx-0 lg:max-w-none lg:px-10 lg:pb-12 lg:pt-10"
-      >
-        {children}
-      </main>
+      <div className="min-w-0">
+        <TopBar full />
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="mx-auto min-w-0 max-w-2xl px-4 pb-28 pt-5 outline-none sm:px-6 lg:mx-0 lg:max-w-none lg:px-10 lg:pb-12 lg:pt-5"
+        >
+          {children}
+        </main>
+      </div>
       <Navigation className="fixed inset-x-0 bottom-0 z-40 mx-auto grid max-w-2xl grid-cols-4 gap-1 rounded-t-3xl border border-border bg-card/95 px-2 pt-2 pb-[max(env(safe-area-inset-bottom),8px)] shadow-card backdrop-blur-lg lg:hidden" />
     </div>
   );
 }
 
-function Brand() {
+function TopBar({ full = false }: { full?: boolean }) {
+  const progress = useProgress();
+  const hydrated = useHydrated();
+  const streak = hydrated ? currentStreak(progress, toDateKey(new Date())) : 0;
+  const xp = hydrated ? progress.xp : 0;
+  return (
+    <header
+      className={cn(
+        "sticky top-0 z-30 mx-auto flex items-center justify-between gap-2 border-b border-border/70 bg-background/95 px-4 py-2.5 backdrop-blur-lg sm:px-6",
+        full && "max-w-2xl lg:max-w-none lg:justify-end lg:px-10",
+      )}
+    >
+      <div className={full ? "lg:hidden" : undefined}>
+        <Brand compact />
+      </div>
+      <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+        <Link
+          to="/progress"
+          aria-label={`Progress: ${streak}-day streak, ${xp} XP`}
+          className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-border bg-card px-2.5 text-xs font-extrabold tabular-nums hover:bg-primary-soft sm:gap-2"
+        >
+          <Flame aria-hidden="true" className="size-3.5 text-flame" />
+          <span>
+            {streak}
+            <span className="sr-only">-day streak</span>
+          </span>
+          <span aria-hidden="true" className="h-3 w-px bg-border" />
+          <Zap aria-hidden="true" className="size-3.5 fill-sun text-flame" />
+          <span>{xp} XP</span>
+        </Link>
+        <ProfileLink />
+      </div>
+    </header>
+  );
+}
+
+function Brand({ compact = false }: { compact?: boolean }) {
   return (
     <Link
       to="/"
-      className="inline-flex w-fit items-center gap-2.5 rounded-xl font-display text-xl font-bold text-primary outline-offset-4"
+      className={cn(
+        "inline-flex w-fit items-center rounded-xl font-display font-bold text-primary outline-offset-4",
+        compact ? "gap-1.5 text-sm sm:gap-2 sm:text-lg" : "gap-2.5 text-xl",
+      )}
     >
-      <span className="grid size-10 place-items-center rounded-[0.85rem] bg-primary text-primary-foreground">
+      <span
+        className={cn(
+          "grid shrink-0 place-items-center rounded-[0.85rem] bg-primary text-primary-foreground",
+          compact ? "size-8 sm:size-9" : "size-10",
+        )}
+      >
         <Sprout aria-hidden="true" className="size-5" />
       </span>
       Speak Sprout
@@ -58,20 +109,35 @@ function Brand() {
   );
 }
 
-function ProfileLink({ compact, className }: { compact?: boolean; className?: string }) {
+function ProfileLink() {
+  const profile = useLocalProfile();
+  const name = profile?.name;
+  const initial = name ? firstGrapheme(name).toLocaleUpperCase() : "";
   return (
     <Link
       to="/login"
-      aria-label="Local profile"
-      className={cn(
-        "flex items-center gap-3 rounded-xl border border-border bg-card p-2.5 text-sm font-bold text-foreground transition-colors hover:bg-primary-soft",
-        className,
-      )}
+      aria-label={name ? `Local profile for ${name}` : "Local profile"}
+      className="grid min-h-9 min-w-9 place-items-center rounded-full border border-border bg-card text-foreground transition-colors hover:bg-primary-soft"
     >
-      <UserRound aria-hidden="true" className="size-5 text-primary" />
-      {!compact && "Profile"}
+      {initial ? (
+        <span
+          aria-hidden="true"
+          className="grid size-5 shrink-0 place-items-center rounded-full bg-primary text-[0.65rem] font-extrabold text-primary-foreground"
+        >
+          {initial}
+        </span>
+      ) : (
+        <UserRound aria-hidden="true" className="size-5 shrink-0 text-primary" />
+      )}
     </Link>
   );
+}
+
+function firstGrapheme(name: string) {
+  if (typeof Intl.Segmenter === "function") {
+    return new Intl.Segmenter().segment(name)[Symbol.iterator]().next().value?.segment ?? "";
+  }
+  return Array.from(name)[0] ?? "";
 }
 
 function Navigation({ className }: { className: string }) {

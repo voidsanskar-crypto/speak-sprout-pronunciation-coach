@@ -1,15 +1,19 @@
+import { useEffect, useRef, useState } from "react";
 import { Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useProgress } from "@/hooks/use-progress";
 import { useTextTranslations } from "@/hooks/use-translations";
 import { compareSpelling } from "@/lib/compare-spelling";
 import {
   dictionarySoundContrast,
   SOUND_COACHING,
+  type CoachedSound,
   type DictionaryContrast,
 } from "@/lib/phoneme-review";
 import type { ScoreResult, WordResult } from "@/lib/scoring";
-import { speak } from "@/lib/speech";
+import { speak, stopSpeaking } from "@/lib/speech";
+import { cn } from "@/lib/utils";
 
 const labels = {
   heading: "Words to review",
@@ -18,9 +22,11 @@ const labels = {
   missing: "Missing from the transcript",
   extra: "Extra words in the transcript",
   listen: "Listen",
+  playSound: "Hear sound",
+  audioError: "This sound sample couldn’t play.",
   soundContrast: "Dictionary sound contrast",
   soundGuide:
-    "These are dictionary pronunciations of the two words. The transcript alone cannot identify the sounds you produced.",
+    "Tap a sound for a synthetic example and mouth placement. Highlights compare dictionary pronunciations of the two words.",
   guide:
     "Highlights show differences in spelling in the browser transcript. The app cannot tell which sounds you mispronounced.",
 };
@@ -31,14 +37,17 @@ type ReviewProps = {
   extraWords: string[];
   contrasts: Map<number, DictionaryContrast>;
   onReplay: (word: string) => void;
+  onSoundPlay?: (() => void) | undefined;
 };
 
 export function WordMatchReview({
   result,
   onReplay = (word) => speak(word, { slow: true }),
+  onSoundPlay,
 }: {
   result: ScoreResult;
   onReplay?: (word: string) => void;
+  onSoundPlay?: () => void;
 }) {
   const { translationLanguage } = useProgress();
   const words = result.words.filter((word) => word.status !== "correct");
@@ -46,10 +55,13 @@ export function WordMatchReview({
 
   const contrasts = new Map<number, DictionaryContrast>();
   for (const word of words) {
-    const contrast = dictionarySoundContrast(word.target, word.heard);
+    const contrast = dictionarySoundContrast(
+      word.targetSpelling ?? word.target,
+      word.heardSpelling ?? word.heard,
+    );
     if (contrast) contrasts.set(word.index, contrast);
   }
-  const props = { words, extraWords: result.extraWords, contrasts, onReplay };
+  const props = { words, extraWords: result.extraWords, contrasts, onReplay, onSoundPlay };
   const language = translationLanguage?.trim();
   return language && !/^english$/i.test(language) ? (
     <LocalizedReview {...props} language={language} />
@@ -59,10 +71,15 @@ export function WordMatchReview({
 }
 
 function LocalizedReview({ language, ...props }: ReviewProps & { language: string }) {
-  const sounds = new Set(Array.from(props.contrasts.values(), (contrast) => contrast.tip));
-  const tips = [...sounds].flatMap((sound) =>
-    sound ? [{ id: `sound-tip:v1:${sound}`, text: SOUND_COACHING[sound] }] : [],
+  const sounds = new Set(
+    [...props.contrasts.values()].flatMap(({ expected, heard }) =>
+      [...expected, ...heard].map(({ phone }) => phone),
+    ),
   );
+  const tips = [...sounds].map((sound) => ({
+    id: `sound-tip:v1:${sound}`,
+    text: SOUND_COACHING[sound],
+  }));
   const translation = useTextTranslations([...messages, ...tips], language);
   const copy = { ...labels };
   for (const key of Object.keys(labels) as (keyof typeof labels)[]) {
@@ -85,9 +102,27 @@ function Review({
   extraWords,
   contrasts,
   onReplay,
+  onSoundPlay,
   copy,
   translated,
 }: ReviewProps & { copy: typeof labels; translated?: Record<string, string> | undefined }) {
+  const audio = useRef<HTMLAudioElement | null>(null);
+  const [activeChip, setActiveChip] = useState<string | null>(null);
+  const [audioError, setAudioError] = useState(false);
+  useEffect(() => () => audio.current?.pause(), []);
+
+  function playPhone(phone: CoachedSound) {
+    onSoundPlay?.();
+    stopSpeaking();
+    audio.current?.pause();
+    setAudioError(false);
+    const sample = new Audio(`${import.meta.env.BASE_URL}phonemes/${phone}.mp3`);
+    audio.current = sample;
+    void sample.play().catch(() => {
+      if (audio.current === sample) setAudioError(true);
+    });
+  }
+
   return (
     <div className="mt-4 rounded-2xl border border-border bg-card p-3.5">
       <h3 dir="auto" className="font-display text-lg font-semibold">
@@ -99,9 +134,18 @@ function Review({
       {words.length > 0 && (
         <ul className="mt-2 max-h-56 divide-y divide-border overflow-y-auto">
           {words.map((word) => {
-            const { expected, recognized } = compareSpelling(word.target, word.heard ?? "");
+            const target = word.targetSpelling ?? word.target;
+            const heard = word.heardSpelling ?? word.heard ?? "";
+            const { expected, recognized } = compareSpelling(target, heard);
             const contrast = contrasts.get(word.index);
-            const tip = contrast?.tip;
+            const phoneProps = {
+              activeChip,
+              setActiveChip,
+              playPhone,
+              audioError,
+              copy,
+              translated,
+            };
             return (
               <li
                 key={word.index}
@@ -129,8 +173,11 @@ function Review({
                   type="button"
                   size="icon"
                   variant="soft"
-                  aria-label={`${copy.listen}: ${word.target}`}
-                  onClick={() => onReplay(word.target)}
+                  aria-label={`${copy.listen}: ${target}`}
+                  onClick={() => {
+                    audio.current?.pause();
+                    onReplay(target);
+                  }}
                 >
                   <Volume2 aria-hidden="true" />
                 </Button>
@@ -144,20 +191,23 @@ function Review({
                         <span dir="auto" className="text-xs text-muted-foreground">
                           {copy.expected}
                         </span>
-                        <Phones sounds={contrast.expected} />
+                        <Phones
+                          sounds={contrast.expected}
+                          group={`${word.index}:expected`}
+                          {...phoneProps}
+                        />
                       </div>
                       <div>
                         <span dir="auto" className="text-xs text-muted-foreground">
                           {copy.heard}
                         </span>
-                        <Phones sounds={contrast.heard} />
+                        <Phones
+                          sounds={contrast.heard}
+                          group={`${word.index}:heard`}
+                          {...phoneProps}
+                        />
                       </div>
                     </div>
-                    {tip && (
-                      <p dir="auto" className="mt-2 text-xs leading-relaxed">
-                        {translated?.[`sound-tip:v1:${tip}`] ?? SOUND_COACHING[tip]}
-                      </p>
-                    )}
                   </div>
                 )}
               </li>
@@ -202,21 +252,70 @@ function Letters({ letters }: { letters: ReturnType<typeof compareSpelling>["exp
   );
 }
 
-function Phones({ sounds }: { sounds: DictionaryContrast["expected"] }) {
+function Phones({
+  sounds,
+  group,
+  activeChip,
+  setActiveChip,
+  playPhone,
+  audioError,
+  copy,
+  translated,
+}: {
+  sounds: DictionaryContrast["expected"];
+  group: string;
+  activeChip: string | null;
+  setActiveChip: (chip: string | null) => void;
+  playPhone: (phone: CoachedSound) => void;
+  audioError: boolean;
+  copy: typeof labels;
+  translated: Record<string, string> | undefined;
+}) {
   return (
-    <p dir="ltr" className="break-words font-semibold">
-      /
-      {sounds.map(({ sound, different }, index) => (
-        <span
-          key={index}
-          className={
-            different ? "text-danger underline decoration-2 underline-offset-2" : undefined
-          }
-        >
-          {sound}
-        </span>
-      ))}
-      /
-    </p>
+    <div dir="ltr" className="mt-1 flex flex-wrap gap-1">
+      {sounds.map(({ phone, sound, different }, index) => {
+        const id = `${group}:${index}`;
+        return (
+          <Popover
+            key={id}
+            open={activeChip === id}
+            onOpenChange={(open) => {
+              setActiveChip(open ? id : null);
+            }}
+          >
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className={cn(
+                  "inline-flex min-h-9 min-w-9 items-center justify-center rounded-full border px-2 font-semibold outline-offset-2 hover:brightness-95",
+                  different
+                    ? "phoneme-difference border-danger/65 bg-danger-soft text-danger"
+                    : "border-border bg-card text-foreground",
+                )}
+                aria-label={`${copy.playSound} /${sound}/`}
+                onClick={() => playPhone(phone)}
+              >
+                {sound}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              side="top"
+              sideOffset={8}
+              collisionPadding={12}
+              className="max-w-[calc(100vw-1.5rem)] rounded-xl px-3 py-2 text-sm"
+              aria-label={`${copy.playSound} /${sound}/`}
+              onOpenAutoFocus={(event) => event.preventDefault()}
+            >
+              <p dir="auto">{translated?.[`sound-tip:v1:${phone}`] ?? SOUND_COACHING[phone]}</p>
+              {audioError && (
+                <p role="status" className="mt-1 text-xs text-danger">
+                  {copy.audioError}
+                </p>
+              )}
+            </PopoverContent>
+          </Popover>
+        );
+      })}
+    </div>
   );
 }

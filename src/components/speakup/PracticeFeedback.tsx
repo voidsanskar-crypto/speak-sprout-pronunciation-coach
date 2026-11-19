@@ -1,11 +1,23 @@
 import { WordMatchReview } from "@/components/speakup/WordMatchReview";
-import { ArrowRight, Check, Minus, RotateCcw, Snail, Volume2, X, Zap } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  Minus,
+  RotateCcw,
+  Snail,
+  Star,
+  ThumbsUp,
+  Volume2,
+  X,
+  Zap,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Mascot } from "@/components/speakup/Mascot";
 import { ScoreGauge } from "@/components/speakup/ScoreGauge";
 import { WordDetail } from "@/components/speakup/WordDetail";
 import { Button } from "@/components/ui/button";
 import { fireConfetti, shouldCelebrate } from "@/lib/celebrate";
+import { dictionarySoundContrast } from "@/lib/phoneme-review";
 import { displayWords, ipaWords, type Phrase } from "@/lib/phrases";
 import { xpForScore } from "@/lib/progress";
 import { tokenize, type ScoreResult, type WordStatus } from "@/lib/scoring";
@@ -81,6 +93,18 @@ export function PracticeFeedback({
   const selected = selectedIndex === null ? undefined : words[selectedIndex];
   const firstReviewIndex = words.findIndex(({ match }) => match.status !== "correct");
   const review = words[firstReviewIndex];
+  const cheering = shouldCelebrate(result.score);
+  const encouraging = result.score >= 70 && !cheering;
+  const showSoundHint =
+    result.score < 70 &&
+    result.words.some(
+      (word) =>
+        word.status !== "correct" &&
+        dictionarySoundContrast(
+          word.targetSpelling ?? word.target,
+          word.heardSpelling ?? word.heard,
+        ),
+    );
 
   useEffect(() => {
     if (!shouldCelebrate(result.score)) return;
@@ -103,11 +127,39 @@ export function PracticeFeedback({
   return (
     <div className="mt-6 space-y-4">
       <section className="relative overflow-hidden rounded-[2rem] bg-card px-5 py-5 shadow-card">
-        <Mascot
-          mood={result.score >= 75 ? "cheer" : "wave"}
-          className="pointer-events-none absolute right-2 top-2 hidden w-16 min-[380px]:block"
-        />
+        <div className="pointer-events-none absolute right-2 top-3 w-14 min-[380px]:w-[4.5rem]">
+          <Mascot
+            mood={cheering ? "cheer" : "wave"}
+            className={cheering ? "kiki-cheer" : encouraging ? "" : "kiki-tilt"}
+          />
+          {cheering && (
+            <>
+              <Star
+                aria-hidden="true"
+                className="absolute -left-1 top-0 size-4 fill-sun text-sun"
+              />
+              <Star
+                aria-hidden="true"
+                className="absolute -right-1 bottom-0.5 size-3 fill-sun text-sun"
+              />
+            </>
+          )}
+          {encouraging && (
+            <span className="absolute -bottom-1 right-0 rounded-full bg-success-soft p-1.5 text-success">
+              <ThumbsUp aria-hidden="true" className="size-3.5" />
+            </span>
+          )}
+        </div>
         <ScoreGauge score={result.score} />
+        <p className="mt-2 text-center text-sm font-bold">
+          {cheering
+            ? "That was fantastic!"
+            : encouraging
+              ? "Good work, keep going!"
+              : showSoundHint
+                ? "Almost! Tap a red sound to hear how to say it."
+                : "Almost! Review a highlighted word and try again."}
+        </p>
         <p className="mx-auto mt-2 max-w-64 text-center text-xs leading-relaxed text-muted-foreground">
           Compares the browser transcript with the prompt. Individual sounds and rhythm are
           unscored.
@@ -153,6 +205,7 @@ export function PracticeFeedback({
         </div>
         <WordMatchReview
           result={result}
+          onSoundPlay={() => recording.current?.pause()}
           onReplay={(word) => {
             recording.current?.pause();
             speak(word, { slow: true });

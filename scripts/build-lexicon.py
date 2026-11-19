@@ -24,8 +24,10 @@ repo = Path(__file__).resolve().parents[1]
 target_words = set()
 for path in SOURCE_FILES:
     source = (repo / path).read_text(encoding="utf-8")
+    if path.endswith("minimal-pairs.tsx"):
+        source = source.split("type PairStart", 1)[0]
     for literal in re.findall(r"""["]([A-Za-z0-9 ,.!?&;’'–—/-]+)["]""", source):
-        target_words.update(re.findall(r"[a-z]+(?:['’][a-z]+)*", literal.lower()))
+        target_words.update(re.findall(r"[a-z]+(?:['’-][a-z]+)*", literal.lower()))
 
 unstressed = {"AH0": "AX", "ER0": "AXR"}
 pronunciations = defaultdict(list)
@@ -35,14 +37,21 @@ for row in args.cmudict.read_text(encoding="utf-8").splitlines():
         continue
     spelling, *raw_phones = parts
     word = re.sub(r"\(\d+\)$", "", spelling)
-    if not re.fullmatch(r"[a-z]+(?:'[a-z]+)*", word):
+    if not re.fullmatch(r"[a-z]+(?:['-][a-z]+)*", word):
         continue
-    key = word.replace("'", "")
     phones = tuple(unstressed.get(phone, phone.rstrip("012")) for phone in raw_phones)
-    if phones not in pronunciations[key]:
-        pronunciations[key].append(phones)
+    if phones not in pronunciations[word]:
+        pronunciations[word].append(phones)
 
-target_words = {word.replace("'", "").replace("’", "") for word in target_words}
+# Include common contractions even when absent from seeded phrases.
+target_words.update('''
+ain't aren't can't couldn't didn't doesn't don't hadn't hasn't haven't isn't let's
+shan't shouldn't wasn't weren't won't wouldn't that's there's here's what's who's
+how's where's when's why's i'm you're he's she's it's we're they're i've you've we've
+they've i'll you'll he'll she'll it'll we'll they'll i'd you'd he'd she'd we'd they'd
+'''.split())
+target_words = {word.replace("’", "'") for word in target_words}
+target_words.update(part for word in tuple(target_words) for part in word.split("-"))
 target_phones = {phones for word in target_words for phones in pronunciations.get(word, [])}
 shorter = {phones[:i] + phones[i + 1:] for phones in target_phones for i in range(len(phones))}
 wildcards = {
@@ -62,10 +71,22 @@ def close_to_target(phones):
     )
 
 
+selected = {
+    word: variants
+    for word, variants in pronunciations.items()
+    if word in target_words
+    or any(close_to_target(phones) for phones in variants)
+}
+
+# Accept unpunctuated transcripts when the stripped spelling is not a different word.
+for word, variants in tuple(selected.items()):
+    bare_word = word.replace("'", "")
+    if bare_word != word and bare_word not in pronunciations:
+        selected.setdefault(bare_word, variants)
+
 lexicon = {
     word: "|".join(" ".join(phones) for phones in variants)
-    for word, variants in sorted(pronunciations.items())
-    if word in target_words or any(close_to_target(phones) for phones in variants)
+    for word, variants in sorted(selected.items())
 }
 
 output = repo / "src/lib/data/cmu-english.json"

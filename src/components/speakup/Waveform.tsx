@@ -1,52 +1,47 @@
 import { useEffect, useRef } from "react";
+import type { RecorderStatus } from "@/hooks/use-speech-recorder";
 
-const BARS = 28;
-
-export function Waveform({ active, analyser, speaking }: { active: boolean; analyser: AnalyserNode | null; speaking: boolean }) {
-  const barsRef = useRef<(HTMLSpanElement | null)[]>([]);
-  const speakingRef = useRef(speaking);
-  speakingRef.current = speaking;
+export function Waveform({
+  status,
+  analyser,
+  speaking,
+}: {
+  status: RecorderStatus;
+  analyser: AnalyserNode | null;
+  speaking: boolean;
+}) {
+  const orb = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!active) {
-      barsRef.current.forEach((b) => b && (b.style.transform = "scaleY(0.12)"));
-      return;
-    }
-    let raf = 0;
-    const data = analyser ? new Uint8Array(analyser.frequencyBinCount) : null;
-    const tick = (t: number) => {
-      if (analyser && data) analyser.getByteFrequencyData(data);
-      barsRef.current.forEach((bar, i) => {
-        if (!bar) return;
-        let level: number;
-        if (analyser && data) {
-          const bin = Math.floor(2 + (i / BARS) * (data.length * 0.55));
-          level = (data[bin] ?? 0) / 255;
-        } else {
-          const base = speakingRef.current ? 0.55 : 0.12;
-          level = base * (0.5 + 0.5 * Math.abs(Math.sin(t / 180 + i * 0.7))) + Math.random() * (speakingRef.current ? 0.3 : 0.05);
-        }
-        const centerBoost = 1 - Math.abs(i - BARS / 2) / (BARS / 1.3);
-        bar.style.transform = `scaleY(${Math.max(0.1, Math.min(1, level * (0.6 + centerBoost)))})`;
-      });
-      raf = requestAnimationFrame(tick);
+    if (status !== "listening" || !orb.current) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const element = orb.current;
+    const samples = analyser ? new Uint8Array(analyser.fftSize) : null;
+    let frame = 0;
+    let level = 0;
+    const tick = () => {
+      let volume = speaking ? 0.5 : 0;
+      if (analyser && samples) {
+        analyser.getByteTimeDomainData(samples);
+        let energy = 0;
+        for (const sample of samples) energy += ((sample - 128) / 128) ** 2;
+        volume = Math.min(1, Math.sqrt(energy / samples.length) * 5);
+      }
+      level += (volume - level) * (volume > level ? 0.26 : 0.12);
+      element.style.setProperty("--voice-level", String(level));
+      frame = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [active, analyser]);
+    frame = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(frame);
+      element.style.removeProperty("--voice-level");
+    };
+  }, [status, analyser, speaking]);
 
   return (
-    <div className="flex h-14 items-center justify-center gap-[3px]" aria-hidden>
-      {Array.from({ length: BARS }).map((_, i) => (
-        <span
-          key={i}
-          ref={(el) => {
-            barsRef.current[i] = el;
-          }}
-          className="h-full w-[5px] origin-center rounded-full bg-gradient-hero transition-transform duration-75"
-          style={{ transform: "scaleY(0.12)" }}
-        />
-      ))}
+    <div className="voice-orb" aria-hidden="true" data-status={status} ref={orb}>
+      <span className="voice-orb-fill" />
+      <span className="voice-orb-ring" />
     </div>
   );
 }

@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Headphones, RotateCcw, Volume2 } from "lucide-react";
+import { ArrowRight, Headphones, RotateCcw, Volume2, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { MobileShell } from "@/components/speakup/MobileShell";
 import { SpeechPrompt } from "@/components/speakup/SpeechPrompt";
 import { Button } from "@/components/ui/button";
+import { recordTroubleWords } from "@/hooks/use-progress";
 import { canSpeak, speak, stopSpeaking } from "@/lib/speech";
 import type { ScoreResult } from "@/lib/scoring";
 import { cn } from "@/lib/utils";
@@ -27,7 +28,8 @@ const extraPairs = [
   ["seat", "sit"],
 ] as const;
 
-type Round = { options: readonly [string, string]; target: string };
+type PairStart = (typeof corePairs | typeof extraPairs)[number][0];
+type Round = { options: readonly [string, string]; target: string; tip: string };
 type Stage = "listen" | "speak" | "done";
 
 function shuffled<T>(list: readonly T[]): T[] {
@@ -42,21 +44,59 @@ function shuffled<T>(list: readonly T[]): T[] {
 function buildRounds(): Round[] {
   return shuffled([...corePairs, ...shuffled(extraPairs).slice(0, 8 - corePairs.length)]).map(
     (pair) => ({
-      options: pair,
+      options: Math.random() < 0.5 ? pair : [pair[1], pair[0]],
       target: pair[Math.random() < 0.5 ? 0 : 1],
+      tip: pairTips[pair[0]],
     }),
   );
 }
 
-const coreTips: Record<string, string> = {
+const pairTips: Record<PairStart, string> = {
   sheep:
     "For /iː/ in sheep, bring your tongue high and forward. Let it sit a little lower for /ɪ/ in ship.",
+  bat: "Open your jaw wider for /æ/ in bat. Keep your tongue toward the front and lift your jaw a little for /ɛ/ in bet.",
   think:
     "For /θ/ in think, put the tip of your tongue lightly between your teeth and let air pass. Keep it behind your teeth for /s/ in sink.",
   right:
     "For /ɹ/ in right, keep your tongue from touching the roof of your mouth. For /l/ in light, touch just behind your front teeth.",
   berry:
     "For /b/ in berry, close both lips and release them. For /v/ in very, let air pass between your upper teeth and lower lip.",
+  vest: "For /v/ in vest, lightly touch your upper teeth to your lower lip. For /w/ in west, round both lips without touching your teeth.",
+  fan: "Use the same teeth-on-lip position for both. Let air pass quietly for /f/ in fan. Add voice for /v/ in van.",
+  sip: "Keep your tongue just behind your front teeth for /s/ in sip. Pull it back slightly and round your lips for /ʃ/ in ship.",
+  thin: "Let air pass over your tongue tip between your teeth for /θ/ in thin. For /t/ in tin, briefly block the air behind your upper teeth, then release it.",
+  coat: "Lift the back of your tongue toward the soft palate for both sounds. Release without voicing for /k/ in coat, and add voice for /ɡ/ in goat.",
+  cap: "Close both lips at the end of the word. For /p/ in cap, release without voicing. For /b/ in cab, use your voice and keep the vowel a little longer.",
+  pull: "Round your lips for both vowels. Keep your tongue a little lower and relaxed for /ʊ/ in pull. Raise it and hold the vowel longer for /uː/ in pool.",
+  seat: "Bring your tongue high and forward for /iː/ in seat. Lower it slightly and keep the vowel shorter for /ɪ/ in sit.",
+};
+
+const pairIpa: Record<string, string> = {
+  sheep: "ʃiːp",
+  ship: "ʃɪp",
+  bat: "bæt",
+  bet: "bɛt",
+  think: "θɪŋk",
+  sink: "sɪŋk",
+  right: "ɹaɪt",
+  light: "laɪt",
+  berry: "bɛɹi",
+  very: "vɛɹi",
+  vest: "vɛst",
+  west: "wɛst",
+  fan: "fæn",
+  van: "væn",
+  sip: "sɪp",
+  thin: "θɪn",
+  tin: "tɪn",
+  coat: "koʊt",
+  goat: "ɡoʊt",
+  cap: "kæp",
+  cab: "kæb",
+  pull: "pʊl",
+  pool: "puːl",
+  seat: "siːt",
+  sit: "sɪt",
 };
 
 export const Route = createFileRoute("/minimal-pairs")({
@@ -186,12 +226,14 @@ function MinimalPairs() {
                   <Volume2 aria-hidden="true" />{" "}
                   {played ? "Replay mystery word" : "Play mystery word"}
                 </Button>
-                <div className="mt-4 grid grid-cols-2 gap-2">
-                  {round.options.map((word) => (
+                <div className="pair-arena mt-5 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5 rounded-2xl p-2 sm:gap-3 sm:p-3">
+                  {round.options.map((word, place) => (
                     <button
                       key={word}
                       type="button"
                       lang="en"
+                      aria-label={word}
+                      style={{ gridColumn: place === 0 ? 1 : 3, gridRow: 1 }}
                       disabled={!played || answer !== null}
                       onClick={() => {
                         if (answer !== null) return;
@@ -199,8 +241,11 @@ function MinimalPairs() {
                         if (word === round.target) setListeningScore((score) => score + 1);
                       }}
                       className={cn(
-                        "rounded-2xl border border-border px-2 py-4 text-center font-display text-xl font-semibold enabled:hover:border-primary disabled:cursor-default",
-                        answer === null && !played && "opacity-50",
+                        "flex min-h-24 min-w-0 flex-col items-center justify-center gap-2 rounded-xl border px-1 py-3 text-center font-display text-lg font-extrabold uppercase transition-[transform,background-color] enabled:hover:-translate-y-0.5 enabled:focus-visible:outline-2 enabled:focus-visible:outline-offset-2 disabled:cursor-default sm:text-2xl",
+                        place === 0
+                          ? "border-primary/35 bg-primary-soft text-primary"
+                          : "border-warning/40 bg-warning-soft text-warning",
+                        answer === null && !played && "opacity-75",
                         answer !== null &&
                           word === round.target &&
                           "border-success bg-success-soft text-success",
@@ -209,9 +254,21 @@ function MinimalPairs() {
                           "border-danger bg-danger-soft text-danger",
                       )}
                     >
-                      {word}
+                      <span
+                        aria-hidden="true"
+                        className="rounded-full bg-card px-2 py-0.5 font-sans text-xs font-bold normal-case"
+                      >
+                        /{pairIpa[word]}/
+                      </span>
+                      <span className="max-w-full break-words">{word}</span>
                     </button>
                   ))}
+                  <span
+                    aria-hidden="true"
+                    className="col-start-2 row-start-1 flex flex-col items-center font-display text-xs font-extrabold text-primary sm:text-base"
+                  >
+                    <Zap className="size-4 fill-sun text-flame sm:size-5" /> VS
+                  </span>
                 </div>
                 {answer !== null && (
                   <div className="mt-4 rounded-2xl bg-primary-soft p-4">
@@ -254,15 +311,19 @@ function MinimalPairs() {
                 <p className="mb-3 text-sm text-muted-foreground">
                   Tap the mic, say the word, then replay your recording if your browser supports it.
                 </p>
-                {coreTips[round.options[0]] && (
-                  <p className="mb-3 rounded-xl bg-primary-soft p-3 text-sm">
-                    {coreTips[round.options[0]]}
-                  </p>
-                )}
+                <aside
+                  aria-label="Mouth-position tip"
+                  className="mb-3 rounded-xl bg-primary-soft p-3 text-sm"
+                >
+                  {round.tip}
+                </aside>
                 <SpeechPrompt
                   key={`${index}:${speakingIndex}`}
                   text={round.options[speakingIndex]!}
-                  onScore={setSpoken}
+                  onScore={(score) => {
+                    recordTroubleWords(score.words);
+                    setSpoken(score);
+                  }}
                 />
                 {spoken && (
                   <p

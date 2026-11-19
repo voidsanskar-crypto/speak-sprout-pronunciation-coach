@@ -4,6 +4,9 @@ export interface WordResult {
   index: number;
   target: string; // normalized target word
   heard: string | null;
+  // Preserve meaningful spelling, such as apostrophes, for pronunciation lookup.
+  targetSpelling?: string;
+  heardSpelling?: string;
   similarity: number; // 0..1
   status: WordStatus;
 }
@@ -41,11 +44,26 @@ export function normalizeWord(word: string): string {
   return NUMBER_WORDS[w] ?? w;
 }
 
-export function tokenize(text: string): string[] {
+export function pronunciationSpelling(word: string): string {
+  return word
+    .toLowerCase()
+    .replace(/[’‘ʼ]/g, "'")
+    .replace(/[–—]/g, "-")
+    .replace(/[^a-z0-9'-]/g, "")
+    .replace(/^['-]+|['-]+$/g, "");
+}
+
+const wordBoundaries = /[\s\-–—]+/;
+
+function scoreTokens(text: string) {
   return text
-    .split(/[\s\-–—]+/)
-    .map(normalizeWord)
-    .filter(Boolean);
+    .split(wordBoundaries)
+    .map((part) => ({ normalized: normalizeWord(part), spelling: pronunciationSpelling(part) }))
+    .filter((word) => word.normalized);
+}
+
+export function tokenize(text: string): string[] {
+  return text.split(wordBoundaries).map(normalizeWord).filter(Boolean);
 }
 
 export function levenshtein(a: string, b: string): number {
@@ -97,8 +115,8 @@ export function statusFor(similarity: number): WordStatus {
  * target word by its matched word's similarity.
  */
 export function scoreTranscript(targetText: string, transcript: string): ScoreResult {
-  const target = tokenize(targetText);
-  const heard = tokenize(transcript);
+  const target = scoreTokens(targetText);
+  const heard = scoreTokens(transcript);
   const n = target.length;
   const m = heard.length;
   const GAP = 1;
@@ -115,7 +133,9 @@ export function scoreTranscript(targetText: string, transcript: string): ScoreRe
   }
   for (let i = 1; i <= n; i++) {
     for (let j = 1; j <= m; j++) {
-      const sub = cost[i - 1]![j - 1]! + (1 - wordSimilarity(target[i - 1]!, heard[j - 1]!)) * 1.5;
+      const sub =
+        cost[i - 1]![j - 1]! +
+        (1 - wordSimilarity(target[i - 1]!.normalized, heard[j - 1]!.normalized)) * 1.5;
       const del = cost[i - 1]![j]! + GAP; // target word missed
       const ins = cost[i]![j - 1]! + GAP * 0.6; // extra heard word
       if (sub <= del && sub <= ins) {
@@ -131,7 +151,7 @@ export function scoreTranscript(targetText: string, transcript: string): ScoreRe
     }
   }
 
-  const matched: (string | null)[] = new Array(n).fill(null);
+  const matched: ((typeof heard)[number] | null)[] = new Array(n).fill(null);
   const extraWords: string[] = [];
   let i = n;
   let j = m;
@@ -144,15 +164,27 @@ export function scoreTranscript(targetText: string, transcript: string): ScoreRe
     } else if (mv === 1) {
       i--;
     } else {
-      extraWords.push(heard[j - 1]!);
+      extraWords.push(heard[j - 1]!.spelling || heard[j - 1]!.normalized);
       j--;
     }
   }
 
-  const words: WordResult[] = target.map((t, idx) => {
-    const h = matched[idx] ?? null;
-    const similarity = h ? wordSimilarity(t, h) : 0;
-    return { index: idx, target: t, heard: h, similarity, status: statusFor(similarity) };
+  const words: WordResult[] = target.map((expected, idx) => {
+    const recognized = matched[idx];
+    const similarity = recognized ? wordSimilarity(expected.normalized, recognized.normalized) : 0;
+    return {
+      index: idx,
+      target: expected.normalized,
+      heard: recognized?.normalized ?? null,
+      ...(expected.spelling && expected.spelling !== expected.normalized
+        ? { targetSpelling: expected.spelling }
+        : {}),
+      ...(recognized?.spelling && recognized.spelling !== recognized.normalized
+        ? { heardSpelling: recognized.spelling }
+        : {}),
+      similarity,
+      status: statusFor(similarity),
+    };
   });
 
   const total = words.reduce((s, w) => s + w.similarity, 0);

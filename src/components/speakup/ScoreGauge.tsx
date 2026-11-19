@@ -17,10 +17,12 @@ export function ScoreGauge({ score, caption = "word match" }: { score: number; c
     }
     let raf = 0;
     const startT = performance.now();
-    const dur = 1200;
+    const dur = 800;
+    const spring = (p: number) => 1 - (1 + 7 * p) * Math.exp(-7 * p);
+    setShown(0);
     const tick = (t: number) => {
       const p = Math.min(1, (t - startT) / dur);
-      const eased = 1 - Math.pow(1 - p, 3);
+      const eased = spring(p) / spring(1);
       setShown(Math.round(score * eased));
       if (p < 1) raf = requestAnimationFrame(tick);
     };
@@ -32,6 +34,7 @@ export function ScoreGauge({ score, caption = "word match" }: { score: number; c
     <div className="flex flex-col items-center">
       <Ring
         value={shown / 100}
+        transition={false}
         size={144}
         stroke={12}
         barClassName={scoreTone(score)}
