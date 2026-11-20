@@ -22,44 +22,54 @@ const games = [
     title: "Ear Sprint",
     text: "Pick the word you hear. Build an XP combo in 60 seconds.",
     Icon: Zap,
+    tone: "bg-gradient-sunset",
+    badge: "60s",
   },
   {
     to: "/minimal-pairs",
     title: "Minimal Pairs",
     text: "Hear the difference, then practice both words aloud.",
     Icon: Headphones,
+    tone: "bg-gradient-violet",
+    badge: "Ear + voice",
   },
   {
     to: "/dialogue",
     title: "AI Roleplay",
     text: "Rehearse a real conversation and practice your replies.",
     Icon: MessageCircle,
+    tone: "bg-gradient-hero",
+    badge: "AI",
   },
 ] as const;
 
 const missions = [
-  { title: "Pack for the train", text: "Tell Kiki what goes in each pocket.", Icon: Backpack },
+  { title: "Pack for the train", text: "Tell Kiki what goes in each pocket.", Icon: Backpack, tone: "bg-gradient-ocean", badge: "Puzzle" },
   {
     scenario: "coffee",
     title: "Coffee Shop Rush",
     text: "Order breakfast and answer the barista in 45 seconds.",
     Icon: Coffee,
+    tone: "bg-gradient-interview",
+    badge: "45s",
   },
   {
     scenario: "subway",
     title: "Subway Gate Emergency",
     text: "Ask for the correct terminal before your train leaves.",
     Icon: TrainFront,
+    tone: "bg-gradient-travel",
+    badge: "Timed",
   },
 ] as const;
 
 function Arcade() {
   const tile =
-    "group relative rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/45 hover:bg-primary-soft sm:p-5";
+    "group tactile relative flex flex-col overflow-hidden rounded-3xl bg-card";
   return (
     <MobileShell>
-      <div className="flex items-center gap-3 rounded-[1.75rem] bg-primary-soft p-5 sm:p-7">
-        <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground">
+      <div className="game-shine relative flex items-center gap-3 overflow-hidden rounded-[1.75rem] bg-gradient-violet p-5 text-primary-foreground sm:p-7">
+        <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-card/25 text-primary-foreground backdrop-blur">
           <Gamepad2 aria-hidden="true" />
         </span>
         <h1 className="font-display text-3xl font-bold sm:text-4xl">Arcade</h1>
@@ -69,9 +79,9 @@ function Arcade() {
           Games &amp; roleplay
         </h2>
         <div className="grid gap-2.5 sm:grid-cols-3">
-          {games.map(({ to, title, text, Icon }) => (
+          {games.map(({ to, title, text, Icon, tone, badge }) => (
             <Link to={to} key={to} className={tile}>
-              <Tile title={title} text={text} Icon={Icon} />
+              <Tile title={title} text={text} Icon={Icon} tone={tone} badge={badge} />
             </Link>
           ))}
         </div>
@@ -81,14 +91,14 @@ function Arcade() {
           Speaking missions
         </h2>
         <div className="grid gap-2.5 sm:grid-cols-3">
-          {missions.map(({ title, text, Icon, ...mission }) => (
+          {missions.map(({ title, text, Icon, tone, badge, ...mission }) => (
             <Link
               to="/mission"
               search={"scenario" in mission ? { scenario: mission.scenario } : {}}
               key={title}
               className={tile}
             >
-              <Tile title={title} text={text} Icon={Icon} />
+              <Tile title={title} text={text} Icon={Icon} tone={tone} badge={badge} />
             </Link>
           ))}
         </div>
@@ -97,18 +107,36 @@ function Arcade() {
   );
 }
 
-function Tile({ title, text, Icon }: { title: string; text: string; Icon: typeof Zap }) {
+function Tile({
+  title,
+  text,
+  Icon,
+  tone,
+  badge,
+}: {
+  title: string;
+  text: string;
+  Icon: typeof Zap;
+  tone: string;
+  badge: string;
+}) {
   return (
     <>
-      <span className="grid size-10 place-items-center rounded-xl bg-secondary text-secondary-foreground">
-        <Icon aria-hidden="true" className="size-5" />
-      </span>
-      <ArrowUpRight
-        aria-hidden="true"
-        className="absolute right-4 top-4 size-4 text-muted-foreground group-hover:text-primary"
-      />
-      <h3 className="mt-3 font-display text-lg font-bold leading-tight">{title}</h3>
-      <p className="mt-1 text-sm text-muted-foreground">{text}</p>
+      <div className={`game-shine relative flex h-24 items-center justify-between px-4 ${tone}`}>
+        <span className="grid size-14 place-items-center rounded-2xl bg-card/25 text-primary-foreground backdrop-blur motion-safe:transition-transform motion-safe:group-hover:-rotate-6 motion-safe:group-hover:scale-110">
+          <Icon aria-hidden="true" className="size-7" />
+        </span>
+        <span className="rounded-full bg-card/90 px-2.5 py-1 text-xs font-extrabold text-foreground">
+          {badge}
+        </span>
+      </div>
+      <div className="flex grow flex-col p-4">
+        <h3 className="font-display text-lg font-bold leading-tight">{title}</h3>
+        <p className="mt-1 grow text-sm text-muted-foreground">{text}</p>
+        <span className="mt-3 inline-flex items-center gap-1 self-start rounded-full bg-primary px-3 py-1 font-display text-sm font-bold text-primary-foreground">
+          Play <ArrowUpRight aria-hidden="true" className="size-4" />
+        </span>
+      </div>
     </>
   );
 }

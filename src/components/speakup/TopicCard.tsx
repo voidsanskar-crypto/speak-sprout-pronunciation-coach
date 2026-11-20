@@ -27,21 +27,21 @@ export function TopicCard({
     <Link
       to="/practice"
       search={{ topic: topic.id, level }}
-      className="group flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5 transition-colors hover:border-primary/35 hover:bg-primary-soft sm:p-4"
+      className="group tactile flex items-center gap-3 rounded-3xl bg-card p-3.5 sm:p-4"
     >
       <span
         className={cn(
-          "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-slate-950",
+          "game-shine relative flex size-14 shrink-0 items-center justify-center rounded-2xl text-primary-foreground shadow-card motion-safe:transition-transform motion-safe:group-hover:-rotate-6",
           topic.gradientClass,
         )}
       >
-        <Icon className="size-5" />
+        <Icon className="size-6" />
       </span>
       <div className="min-w-0 flex-1">
         <h3 className="font-display text-lg font-semibold leading-tight">{topic.name}</h3>
         <p className="truncate text-sm text-muted-foreground">{topic.blurb}</p>
         <div className="mt-2 flex items-center gap-2">
-          <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+          <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-muted">
             <div
               className={cn(
                 "h-full rounded-full transition-[width] duration-700",

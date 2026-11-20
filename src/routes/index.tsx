@@ -86,7 +86,7 @@ function Home() {
           </div>
         </section>
 
-        <section className="flex flex-col justify-between rounded-[1.75rem] border border-border bg-card p-5 sm:p-6">
+        <section className="tactile flex flex-col justify-between rounded-[1.75rem] bg-card p-5 sm:p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
               <h2 className="font-display text-xl font-semibold">Today’s goal</h2>
@@ -132,9 +132,9 @@ function Home() {
       )}
       <Link
         to="/review"
-        className="mt-3 flex items-center gap-3 rounded-[1.5rem] border border-border bg-card p-4 transition-colors hover:border-primary/35 hover:bg-primary-soft sm:p-5"
+        className="mt-3 flex items-center gap-3 rounded-[1.5rem] tactile bg-card p-4 sm:p-5"
       >
-        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-primary-soft text-primary">
+        <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-gradient-violet text-primary-foreground">
           <CalendarClock aria-hidden="true" className="size-5" />
         </span>
         <span className="min-w-0 flex-1">
@@ -150,13 +150,13 @@ function Home() {
         <ArrowRight aria-hidden="true" className="size-5 shrink-0 text-primary" />
       </Link>
 
-      <section className="mt-3 flex flex-wrap items-center gap-3 rounded-[1.5rem] border border-primary/20 bg-primary-soft p-4 sm:p-5">
-        <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-card text-primary">
+      <section className="mt-3 flex flex-wrap items-center gap-3 game-shine relative overflow-hidden rounded-[1.5rem] bg-gradient-sunset p-4 sm:p-5">
+        <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-card/30 text-foreground">
           <Gamepad2 aria-hidden="true" className="size-5" />
         </span>
         <div className="min-w-0 flex-1">
           <h2 className="font-display text-xl font-semibold">Today’s quick game</h2>
-          <p className="mt-0.5 text-sm text-muted-foreground">
+          <p className="mt-0.5 text-sm text-foreground/80">
             {earDay
               ? "Ear Sprint · Hear the word and tap before time runs out."
               : "Pack for the train · Tell Kiki where each item goes."}
@@ -170,7 +170,7 @@ function Home() {
       </section>
       <section
         aria-labelledby="explore-library"
-        className="mt-6 rounded-[1.5rem] border border-border bg-card p-4 sm:p-5"
+        className="mt-6 rounded-[1.5rem] border-2 border-border bg-card p-4 shadow-card sm:p-5"
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 id="explore-library" className="font-display text-xl font-semibold">
@@ -188,12 +188,12 @@ function Home() {
           <div>
             <h3 className="text-sm font-bold">Phrase topics</h3>
             <ul className="mt-2 flex flex-wrap gap-2">
-              {featuredTopics.map(({ id, name }) => (
+              {featuredTopics.map(({ id, name, gradientClass }) => (
                 <li key={id}>
                   <Link
                     to="/practice"
                     search={{ topic: id }}
-                    className="inline-flex min-h-10 items-center rounded-xl border border-border px-3 text-sm font-bold hover:border-primary/40 hover:bg-primary-soft"
+                    className={`inline-flex min-h-10 items-center rounded-xl px-3 text-sm font-bold text-foreground shadow-card transition-transform hover:-translate-y-0.5 ${gradientClass}`}
                   >
                     {name}
                   </Link>

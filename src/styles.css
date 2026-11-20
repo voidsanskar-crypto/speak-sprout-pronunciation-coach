@@ -124,6 +124,10 @@
   --gradient-smalltalk: linear-gradient(135deg, oklch(0.86 0.15 90), oklch(0.77 0.17 65));
   --gradient-sounds: linear-gradient(135deg, oklch(0.76 0.15 155), oklch(0.66 0.13 175));
   --shadow-soft: 0 6px 24px -10px oklch(0.25 0.035 265 / 0.18);
+  --gradient-violet: linear-gradient(135deg, oklch(0.7 0.16 295), oklch(0.58 0.19 280));
+  --gradient-sunset: linear-gradient(135deg, oklch(0.84 0.16 80), oklch(0.68 0.19 40));
+  --gradient-ocean: linear-gradient(135deg, oklch(0.72 0.13 200), oklch(0.55 0.13 235));
+  --tactile-edge: oklch(0.88 0.025 123);
   --shadow-card: 0 1px 0 oklch(1 0 0) inset, 0 12px 32px -16px oklch(0.25 0.035 265 / 0.22);
   --shadow-pop: 0 14px 30px -12px oklch(0.44 0.1 160 / 0.3);
   --shadow-mint: 0 14px 30px -12px oklch(0.54 0.11 170 / 0.25);
@@ -417,4 +421,26 @@
   .review-card-exit {
     display: none;
   }
+}
+
+@utility bg-gradient-violet { background-image: var(--gradient-violet); }
+@utility bg-gradient-sunset { background-image: var(--gradient-sunset); }
+@utility bg-gradient-ocean { background-image: var(--gradient-ocean); }
+
+/* Pressable 3D card: solid bottom edge that sinks on press */
+@utility tactile {
+  border: 2px solid var(--border);
+  box-shadow: 0 4px 0 var(--tactile-edge);
+  transition: transform 120ms ease, box-shadow 120ms ease, border-color 150ms ease;
+  &:hover { transform: translateY(-2px); box-shadow: 0 6px 0 var(--tactile-edge); border-color: color-mix(in oklab, var(--primary) 40%, var(--border)); }
+  &:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--tactile-edge); }
+}
+@utility tactile-btn {
+  box-shadow: 0 4px 0 color-mix(in oklab, var(--primary) 70%, black);
+  transition: transform 100ms ease, box-shadow 100ms ease;
+  &:active { transform: translateY(3px); box-shadow: 0 1px 0 color-mix(in oklab, var(--primary) 70%, black); }
+}
+@utility game-shine {
+  &::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    background: radial-gradient(120% 80% at 100% 0%, oklch(1 0 0 / 0.35), transparent 55%); }
 }

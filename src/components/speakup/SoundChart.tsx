@@ -105,7 +105,7 @@ export function SoundChart() {
   return (
     <section
       aria-labelledby="phoneme-chart"
-      className="rounded-[1.75rem] border border-border bg-card p-4 sm:p-6"
+      className="rounded-[1.75rem] border-2 border-border bg-card p-4 shadow-card sm:p-6"
     >
       <h2
         id="phoneme-chart"
@@ -225,10 +225,10 @@ export function SoundChart() {
                       play(code);
                     }}
                     className={cn(
-                      "min-h-14 rounded-xl border px-1 py-1.5 text-center outline-offset-2 hover:border-primary/55 hover:bg-primary-soft",
+                      "relative min-h-16 rounded-2xl border-2 px-1 py-2 text-center outline-offset-2 shadow-[0_3px_0_var(--tactile-edge)] transition-transform hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-none",
                       code === selected && "ring-2 ring-primary ring-offset-1",
                       score === null
-                        ? "border-border bg-muted/45"
+                        ? "border-border bg-card opacity-80"
                         : score >= 85
                           ? "border-success/35 bg-success-soft"
                           : score >= 70
@@ -236,7 +236,16 @@ export function SoundChart() {
                             : "border-danger/35 bg-danger-soft",
                     )}
                   >
-                    <span className="block font-display text-lg font-semibold text-primary">
+                    {score !== null && (
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          "absolute right-1.5 top-1.5 size-2 rounded-full",
+                          score >= 85 ? "bg-success" : score >= 70 ? "bg-warning" : "bg-danger",
+                        )}
+                      />
+                    )}
+                    <span className="block font-display text-xl font-bold text-primary">
                       /{PHONEME_IPA[code]}/
                     </span>
                     <span className="block text-xs text-muted-foreground">{examples[code]}</span>
