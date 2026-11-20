@@ -79,7 +79,7 @@ function Library() {
 
       <section
         id="phrase-library"
-        className="mt-6 scroll-mt-20 rounded-[1.5rem] border border-border bg-card p-4 sm:p-6"
+        className="mt-6 scroll-mt-20 clay-card rounded-3xl bg-card p-4 sm:p-6"
       >
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
@@ -132,7 +132,7 @@ function Library() {
         </div>
       </section>
 
-      <section className="mt-6 rounded-[1.5rem] border border-border bg-card p-4 sm:p-6">
+      <section className="mt-6 clay-card rounded-3xl bg-card p-4 sm:p-6">
         <h2 className="flex items-center gap-2 font-display text-2xl font-semibold">
           <Target aria-hidden="true" className="size-5 text-primary" /> Learning goals
         </h2>

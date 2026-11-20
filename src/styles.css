@@ -330,51 +330,97 @@
 
 .voice-orb {
   --voice-level: 0;
-  display: grid;
-  place-items: center;
   position: relative;
   isolation: isolate;
-  width: 5.75rem;
-  height: 5rem;
+  display: grid;
+  place-items: center;
+  width: 7.5rem;
+  height: 7.75rem;
+  flex: none;
 }
-.voice-orb-fill,
-.voice-orb-ring {
-  grid-area: 1 / 1;
-  width: 3.65rem;
+.voice-orb::before {
+  content: "";
+  position: absolute;
+  inset: auto 1rem 0.65rem;
+  height: 1.9rem;
+  border: 2px solid color-mix(in oklab, var(--primary) 30%, var(--border));
+  border-radius: 50%;
+  background: linear-gradient(var(--primary-soft), var(--primary));
+  box-shadow: inset 0 2px 0 #fff9, 0 5px 0 color-mix(in oklab, var(--primary) 62%, #061b1a), 0 12px 18px -8px #08211f88;
+}
+.voice-orb-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 5.35rem;
   aspect-ratio: 1;
   border-radius: 50%;
-  transition:
-    opacity 230ms ease-out,
-    transform 290ms ease-out;
+  border: 1px solid #b5fff695;
+  color: white;
+  background: radial-gradient(ellipse at 35% 17%, #e2fff7 0%, #71edd1 12%, #188975 38%, #0f575d 70%, #172851 100%);
+  box-shadow: inset 0 3px 5px #fff9, inset 0 -7px 14px #0c183fb0, 0 4px 9px #091c2666;
+  transform: translateY(-0.4rem);
+  transition: transform 360ms cubic-bezier(0.2, 1.55, 0.45, 1), filter 220ms ease;
+  cursor: pointer;
 }
-.voice-orb-fill {
-  background: radial-gradient(circle at 32% 26%, var(--sun), var(--primary) 56%, var(--flame));
-  box-shadow: 0 0 1.45rem color-mix(in oklab, var(--primary) 50%, transparent);
-  opacity: 0.56;
-  transform: scale(0.48);
+.voice-orb-button svg { filter: drop-shadow(0 2px 3px #092825aa); }
+.voice-orb-button:focus-visible { outline: 3px solid var(--primary); outline-offset: 5px; }
+.voice-orb-button:disabled { cursor: wait; }
+.voice-orb-button:active:not(:disabled) { transform: translateY(0.05rem) scale(0.95); }
+.voice-orb-halo,
+.voice-orb-sonar,
+.voice-orb-analysis {
+  pointer-events: none;
+  position: absolute;
+  inset: 0.9rem 0.85rem 1.8rem;
+  border-radius: 50%;
 }
-.voice-orb-ring {
-  position: relative;
-  border: 2px solid color-mix(in oklab, var(--primary) 22%, transparent);
+.voice-orb-halo {
+  background: radial-gradient(circle, #46eeda 5%, #7d63ef80 48%, transparent 72%);
+  opacity: 0.25;
+  transform: scale(1.25);
+  transition: opacity 220ms ease, transform 130ms ease-out;
+}
+.voice-orb-sonar {
+  border: 2px solid #22ae99;
+  opacity: 0;
+}
+.voice-orb[data-status="idle"] .voice-orb-button:not(:active):not(:hover) { animation: orb-float 3.8s ease-in-out infinite; }
+.voice-orb[data-status="idle"] .voice-orb-halo { animation: orb-breathe 3.8s ease-in-out infinite; }
+.voice-orb[data-status="listening"] .voice-orb-button {
+  transform: translateY(-0.5rem) scale(calc(1.02 + 0.12 * var(--voice-level)));
+  filter: brightness(1.14) saturate(1.25);
+}
+.voice-orb[data-status="listening"] .voice-orb-button:active {
+  transform: translateY(0.05rem) scale(0.95);
+}
+.voice-orb[data-status="listening"] .voice-orb-halo {
+  opacity: 0.85;
+  transform: scale(calc(1.3 + 0.4 * var(--voice-level)));
+}
+.voice-orb[data-status="listening"] .voice-orb-sonar {
+  animation: orb-sonar 1.55s ease-out infinite;
+}
+.voice-orb[data-status="listening"] .voice-orb-sonar + .voice-orb-sonar { animation-delay: 775ms; }
+.voice-orb-analysis {
+  opacity: 0;
+  border: 2px solid transparent;
   border-top-color: var(--primary);
-  border-right-color: var(--sun);
-  opacity: 0;
-  transform: scale(0.58);
+  border-right-color: #8460e2;
 }
-.voice-orb[data-status="listening"] .voice-orb-fill {
+.voice-orb[data-status="processing"] .voice-orb-analysis {
   opacity: 1;
-  border-radius: 58% 42% 55% 45% / 46% 57% 43% 54%;
-  transform: scale(calc(0.78 + 0.58 * var(--voice-level)));
-  animation: voice-drift 4.8s linear infinite;
-}
-.voice-orb[data-status="processing"] .voice-orb-fill {
-  opacity: 0;
-  transform: scale(0.68);
-}
-.voice-orb[data-status="processing"] .voice-orb-ring {
-  opacity: 1;
-  transform: scale(1);
   animation: voice-drift 900ms linear infinite;
+}
+@keyframes orb-float {
+  50% { translate: 0 -3px; }
+}
+@keyframes orb-breathe {
+  50% { opacity: 0.47; transform: scale(1.43); }
+}
+@keyframes orb-sonar {
+  from { opacity: 0.7; transform: scale(0.86); }
+  to { opacity: 0; transform: scale(1.45); }
 }
 
 .pair-arena {
@@ -412,8 +458,10 @@
   .phoneme-difference,
   .kiki-cheer,
   .kiki-tilt,
-  .voice-orb-fill,
-  .voice-orb-ring,
+  .voice-orb-button,
+  .voice-orb-halo,
+  .voice-orb-sonar,
+  .voice-orb-analysis,
   .review-card-exit {
     animation: none !important;
     transition: none !important;
@@ -427,19 +475,80 @@
 @utility bg-gradient-sunset { background-image: var(--gradient-sunset); }
 @utility bg-gradient-ocean { background-image: var(--gradient-ocean); }
 
-/* Pressable 3D card: solid bottom edge that sinks on press */
+@utility clay-card {
+  border: 2px solid color-mix(in oklab, var(--primary) 17%, var(--border));
+  box-shadow: inset 0 2px 0 var(--clay-highlight), 0 8px 24px -4px #162c2515;
+}
 @utility tactile {
-  border: 2px solid var(--border);
-  box-shadow: 0 4px 0 var(--tactile-edge);
-  transition: transform 120ms ease, box-shadow 120ms ease, border-color 150ms ease;
-  &:hover { transform: translateY(-2px); box-shadow: 0 6px 0 var(--tactile-edge); border-color: color-mix(in oklab, var(--primary) 40%, var(--border)); }
-  &:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--tactile-edge); }
+  border: 2px solid color-mix(in oklab, var(--primary) 17%, var(--border));
+  box-shadow: inset 0 2px 0 var(--clay-highlight), 0 4px 0 var(--tactile-edge), 0 10px 24px -4px #162c2520;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+  &:hover { transform: translateY(-1px); }
+  &:active { transform: translateY(4px); box-shadow: none; }
 }
 @utility tactile-btn {
-  box-shadow: 0 4px 0 color-mix(in oklab, var(--primary) 70%, black);
-  transition: transform 100ms ease, box-shadow 100ms ease;
-  &:active { transform: translateY(3px); box-shadow: 0 1px 0 color-mix(in oklab, var(--primary) 70%, black); }
+  box-shadow: inset 0 1px 0 var(--clay-highlight), 0 4px 0 var(--lip-color, var(--tactile-edge));
+  transition: transform 110ms ease, box-shadow 110ms ease, filter 110ms ease;
+  &:hover:not(:disabled):not([aria-disabled="true"]) { transform: translateY(-1px); filter: brightness(1.05); }
+  &:active:not(:disabled):not([aria-disabled="true"]) { transform: translateY(4px); box-shadow: none; }
 }
+@utility tactile-emerald {
+  --lip-color: color-mix(in oklab, var(--primary) 62%, #0b1f19);
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+@utility tactile-sun {
+  --lip-color: #b3532b;
+  background-image: linear-gradient(155deg, #ffd989, #ff9a66);
+  color: #58210e;
+}
+@utility tactile-violet {
+  --lip-color: #452598;
+  background-image: linear-gradient(155deg, #8157e4, #5d34bb);
+  color: white;
+}
+@utility tactile-neutral {
+  --lip-color: var(--tactile-edge);
+  background-color: var(--card);
+  color: var(--foreground);
+}
+@utility sound-keycap {
+  --lip-color: color-mix(in oklab, var(--primary) 18%, var(--border));
+  box-shadow: inset 0 2px 0 var(--clay-highlight), inset 2px 0 0 #ffffff20, 0 4px 0 var(--lip-color);
+  transition: transform 110ms ease, box-shadow 110ms ease;
+  &:hover { transform: translateY(-1px); }
+  &:active { transform: translateY(4px); box-shadow: none; }
+}
+
+:root { --clay-highlight: #ffffffb3; }
+.dark { --clay-highlight: #ffffff28; --tactile-edge: #102521; }
+.gem-gauge:last-child svg { filter: drop-shadow(0 0 3px #fff9); }
+.group:hover .gem-gauge { transform: translateY(-1px); }
+.group:active .gem-gauge { transform: translateY(4px); box-shadow: none; }
+.shell-tab[data-status="active"],
+.shell-tab[data-section-active="true"] {
+  color: var(--primary);
+  background: var(--primary-soft);
+  box-shadow: inset 0 1px 0 var(--clay-highlight), 0 3px 0 color-mix(in oklab, var(--primary) 21%, var(--border));
+}
+.goal-meter {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 0.55rem;
+  overflow: hidden;
+  border: 0;
+  border-radius: 1rem;
+  background: var(--card);
+}
+.goal-meter::-webkit-progress-bar { background: var(--card); }
+.goal-meter::-webkit-progress-value { background: var(--primary); border-radius: 1rem; }
+.goal-meter::-moz-progress-bar { background: var(--primary); border-radius: 1rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tactile, .tactile-btn, .sound-keycap { transition: none; }
+}
+
 @utility game-shine {
   &::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
     background: radial-gradient(120% 80% at 100% 0%, oklch(1 0 0 / 0.35), transparent 55%); }

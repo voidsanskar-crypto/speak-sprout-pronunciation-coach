@@ -17,7 +17,7 @@ import { ScoreGauge } from "@/components/speakup/ScoreGauge";
 import { WordDetail } from "@/components/speakup/WordDetail";
 import { Button } from "@/components/ui/button";
 import { fireConfetti, shouldCelebrate } from "@/lib/celebrate";
-import { dictionarySoundContrast } from "@/lib/phoneme-review";
+import { usePronunciationDictionary } from "@/hooks/use-pronunciation-dictionary";
 import { displayWords, ipaWords, type Phrase } from "@/lib/phrases";
 import { xpForScore } from "@/lib/progress";
 import { tokenize, type ScoreResult, type WordStatus } from "@/lib/scoring";
@@ -95,12 +95,13 @@ export function PracticeFeedback({
   const review = words[firstReviewIndex];
   const cheering = shouldCelebrate(result.score);
   const encouraging = result.score >= 70 && !cheering;
+  const dictionary = usePronunciationDictionary(result.score < 70 && firstReviewIndex >= 0);
   const showSoundHint =
     result.score < 70 &&
     result.words.some(
       (word) =>
         word.status !== "correct" &&
-        dictionarySoundContrast(
+        dictionary?.dictionarySoundContrast(
           word.targetSpelling ?? word.target,
           word.heardSpelling ?? word.heard,
         ),
@@ -126,10 +127,11 @@ export function PracticeFeedback({
 
   return (
     <div className="mt-6 space-y-4">
-      <section className="relative overflow-hidden rounded-[2rem] bg-card px-5 py-5 shadow-card">
+      <section className="relative overflow-hidden clay-card rounded-3xl bg-card px-5 py-5">
         <div className="pointer-events-none absolute right-2 top-3 w-14 min-[380px]:w-[4.5rem]">
           <Mascot
             mood={cheering ? "cheer" : "wave"}
+            sizes="(min-width: 380px) 72px, 56px"
             className={cheering ? "kiki-cheer" : encouraging ? "" : "kiki-tilt"}
           />
           {cheering && (
@@ -171,7 +173,7 @@ export function PracticeFeedback({
         </div>
       </section>
 
-      <section className="rounded-[2rem] bg-card p-5 shadow-card">
+      <section className="clay-card rounded-3xl bg-card p-5">
         <h2 className="font-display text-xl font-semibold">Review the phrase</h2>
         <div className="mt-3 flex flex-wrap gap-2">
           {words.map(({ display, match }, index) => {

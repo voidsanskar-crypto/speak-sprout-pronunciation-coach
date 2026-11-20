@@ -18,7 +18,7 @@ it("plays the selected IPA sample and shows the matching coaching tip", async ()
   const pause = vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {});
   try {
     const view = render(<WordMatchReview result={scoreTranscript("think", "sink")} />);
-    const theta = screen.getByRole("button", { name: "Hear sound /θ/" });
+    const theta = await screen.findByRole("button", { name: "Hear sound /θ/" });
     expect(theta).toHaveClass("phoneme-difference");
     expect(screen.getAllByRole("button", { name: "Hear sound /ɪ/" })[0]).not.toHaveClass(
       "phoneme-difference",

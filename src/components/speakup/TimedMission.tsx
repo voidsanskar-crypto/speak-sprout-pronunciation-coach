@@ -154,7 +154,7 @@ export function TimedMission({ scenario }: { scenario: TimedScenario }) {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <MicButton
-                    status={recorder.status}
+                    status={recorder.status} analyser={recorder.analyser} speaking={recorder.speaking}
                     onStart={() => void recorder.start()}
                     onStop={recorder.stop}
                   />

@@ -9,6 +9,7 @@ import { useProgress } from "@/hooks/use-progress";
 import { soundAverage } from "@/lib/progress";
 import { ACCENT_DRILLS } from "@/lib/accent-drills";
 import { useLocalProfile } from "@/hooks/use-local-profile";
+import { canSpeak, speak } from "@/lib/speech";
 import { cn } from "@/lib/utils";
 
 const groups = [
@@ -83,7 +84,22 @@ export function SoundChart() {
   const [query, setQuery] = useState("");
   const [group, setGroup] = useState<Group>("Consonants");
   const [selected, setSelected] = useState<CoachedSound>("TH");
-  const { play, audioError } = usePhonemeAudio();
+  const { play, stop, audioError } = usePhonemeAudio();
+  const [listeningTo, setListeningTo] = useState<"word" | "sound">("word");
+  const [wordError, setWordError] = useState(false);
+
+  function hearWord(phone: CoachedSound, slow = false) {
+    stop();
+    setSelected(phone);
+    setListeningTo("word");
+    setWordError(!canSpeak());
+    speak(examples[phone], { slow, onError: () => setWordError(true) });
+  }
+
+  function hearSound() {
+    setListeningTo("sound");
+    play(selected);
+  }
   const term = query
     .trim()
     .toLowerCase()
@@ -125,10 +141,7 @@ export function SoundChart() {
               variant="soft"
               size="sm"
               type="button"
-              onClick={() => {
-                setSelected(phone);
-                play(phone);
-              }}
+              onClick={() => hearWord(phone)}
             >
               /{PHONEME_IPA[phone]}/
             </Button>
@@ -171,24 +184,24 @@ export function SoundChart() {
       )}
       <section
         aria-label="Selected sound"
-        className="mt-4 rounded-2xl bg-primary-soft p-3.5 sm:p-4"
+        className="clay-card mt-4 rounded-2xl bg-primary-soft p-3.5 sm:p-4"
       >
-        <div className="flex items-start justify-between gap-3">
-          <div aria-live="polite">
-            <h3 className="font-display text-lg font-bold">
-              /{PHONEME_IPA[selected]}/{" "}
-              <span className="text-sm font-medium">as in {examples[selected]}</span>
-            </h3>
-            <p className="mt-1 text-sm">{SOUND_COACHING[selected]}</p>
-          </div>
-          <Button
-            size="icon"
-            variant="soft"
-            type="button"
-            aria-label={`Replay /${PHONEME_IPA[selected]}/`}
-            onClick={() => play(selected)}
-          >
-            <Volume2 aria-hidden="true" />
+        <div aria-live="polite">
+          <h3 className="font-display text-lg font-bold">
+            /{PHONEME_IPA[selected]}/{" "}
+            <span className="text-sm font-medium">as in {examples[selected]}</span>
+          </h3>
+          <p className="mt-1 text-sm">{SOUND_COACHING[selected]}</p>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button size="sm" variant="soft" type="button" onClick={() => hearWord(selected)}>
+            <Volume2 aria-hidden="true" /> Hear word: {examples[selected]}
+          </Button>
+          <Button size="sm" variant="soft" type="button" onClick={() => hearWord(selected, true)}>
+            Hear word slowly
+          </Button>
+          <Button size="sm" variant="soft" type="button" onClick={hearSound}>
+            Hear /{PHONEME_IPA[selected]}/ alone
           </Button>
         </div>
         <p className="mt-2 text-xs font-bold">
@@ -201,9 +214,11 @@ export function SoundChart() {
             Practice /{PHONEME_IPA[selected]}/
           </Link>
         </Button>
-        {audioError && (
+        {(listeningTo === "sound" ? audioError : wordError) && (
           <p role="status" className="mt-2 text-xs text-danger">
-            This sound sample couldn’t play.
+            {listeningTo === "sound"
+              ? "Sound sample unavailable. Try hearing the full word."
+              : "Word audio unavailable in this browser. Try the isolated sound."}
           </p>
         )}
       </section>
@@ -211,24 +226,21 @@ export function SoundChart() {
         results.map(({ label, matches }) => (
           <div key={label} className="mt-4">
             {term && <h3 className="mb-2 text-sm font-bold">{label}</h3>}
-            <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-6 xl:grid-cols-8">
+            <div className="grid grid-cols-4 gap-x-2 gap-y-3 sm:grid-cols-6 xl:grid-cols-8">
               {matches.map((code) => {
                 const score = soundAverage(phonemeMatches?.[code]);
                 return (
                   <button
                     key={code}
                     type="button"
-                    aria-label={`Hear /${PHONEME_IPA[code]}/ as in ${examples[code]}${score === null ? "" : `, ${score}% word match`}`}
+                    aria-label={`Hear word ${examples[code]} for /${PHONEME_IPA[code]}/${score === null ? "" : `, ${score}% word match`}`}
                     aria-pressed={code === selected}
-                    onClick={() => {
-                      setSelected(code);
-                      play(code);
-                    }}
+                    onClick={() => hearWord(code)}
                     className={cn(
-                      "relative min-h-16 rounded-2xl border-2 px-1 py-2 text-center outline-offset-2 shadow-[0_3px_0_var(--tactile-edge)] transition-transform hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-none",
+                      "sound-keycap relative min-h-16 rounded-2xl border-2 px-1 py-2 text-center outline-offset-4 focus-visible:outline-2 focus-visible:outline-primary",
                       code === selected && "ring-2 ring-primary ring-offset-1",
                       score === null
-                        ? "border-border bg-card opacity-80"
+                        ? "border-border bg-card"
                         : score >= 85
                           ? "border-success/35 bg-success-soft"
                           : score >= 70
@@ -236,15 +248,17 @@ export function SoundChart() {
                             : "border-danger/35 bg-danger-soft",
                     )}
                   >
-                    {score !== null && (
-                      <span
-                        aria-hidden="true"
-                        className={cn(
-                          "absolute right-1.5 top-1.5 size-2 rounded-full",
-                          score >= 85 ? "bg-success" : score >= 70 ? "bg-warning" : "bg-danger",
-                        )}
-                      />
-                    )}
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        "absolute right-1.5 top-1.5 size-2 rounded-full shadow-[inset_0_1px_0_#ffffff70]",
+                        score === null
+                          ? "bg-muted-foreground/45"
+                          : score >= 85
+                            ? "bg-success"
+                            : "bg-warning",
+                      )}
+                    />
                     <span className="block font-display text-xl font-bold text-primary">
                       /{PHONEME_IPA[code]}/
                     </span>

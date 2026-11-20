@@ -38,7 +38,7 @@ describe("word match review", () => {
     expect(onReplay).toHaveBeenCalledWith("think");
   });
 
-  it("uses the chosen language for guidance and keeps the review English words local", () => {
+  it("uses the chosen language for guidance and keeps the review English words local", async () => {
     preferences.language = "Spanish";
     preferences.translations.mockReturnValue({
       data: {
@@ -49,8 +49,8 @@ describe("word match review", () => {
     });
     render(<WordMatchReview result={scoreTranscript("I think so", "I sink so")} />);
     expect(screen.getByRole("heading", { name: "Palabras para repasar" })).toBeVisible();
+    expect(await screen.findByText("Dictionary sound contrast")).toBeVisible();
     expect(screen.getAllByText("Palabra esperada")).toHaveLength(2);
-    expect(screen.getByText("Dictionary sound contrast")).toBeVisible();
     const call = preferences.translations.mock.calls[0];
     expect(call?.[1]).toBe("Spanish");
     expect(JSON.stringify(call?.[0])).not.toMatch(/\b(?:think|sink)\b/);

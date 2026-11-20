@@ -40,14 +40,19 @@ function DailySession() {
       .filter(({ due }) => due <= date)
       .sort((a, b) => a.due.localeCompare(b.due))
       .slice(0, 2);
-    setSteps([
-      ...reviews.map(({ word }): Step => ({ kind: "review", word })),
-      ...buildQueue({}, progress)
-        .slice(0, 3)
-        .map((phrase): Step => ({ kind: "phrase", phrase })),
-      { kind: "pair" },
-    ]);
-    return stopSpeaking;
+    let active = true;
+    void buildQueue({}, progress).then((phrases) => {
+      if (!active) return;
+      setSteps([
+        ...reviews.map(({ word }): Step => ({ kind: "review", word })),
+        ...phrases.slice(0, 3).map((phrase): Step => ({ kind: "phrase", phrase })),
+        { kind: "pair" },
+      ]);
+    });
+    return () => {
+      active = false;
+      stopSpeaking();
+    };
   }, []);
 
   const step = steps[index];

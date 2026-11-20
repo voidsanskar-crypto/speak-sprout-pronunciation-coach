@@ -9,17 +9,18 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow hover:bg-primary/90",
+        default: "tactile-btn tactile-emerald",
         destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
-        outline:
-          "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
+        outline: "tactile-btn tactile-neutral border border-input",
+        secondary: "tactile-btn tactile-neutral bg-secondary text-secondary-foreground",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
-        hero: "rounded-full bg-gradient-hero text-primary-foreground font-display font-semibold tactile-btn hover:brightness-105",
-        mint: "rounded-full bg-gradient-mint text-secondary-foreground font-display font-semibold shadow-mint transition-transform hover:scale-[1.02] active:scale-[0.97]",
-        soft: "rounded-full bg-card text-foreground font-semibold shadow-soft border border-border hover:bg-muted active:scale-[0.97] transition-transform",
-        chip: "rounded-full bg-secondary text-secondary-foreground font-semibold hover:bg-secondary/80 active:scale-[0.97] transition-transform",
+        energy: "rounded-2xl tactile-btn tactile-sun font-display font-bold",
+        special: "rounded-2xl tactile-btn tactile-violet font-display font-bold",
+        hero: "rounded-2xl tactile-btn tactile-emerald font-display font-bold",
+        mint: "rounded-2xl tactile-btn tactile-neutral bg-gradient-mint text-secondary-foreground font-display font-semibold",
+        soft: "rounded-xl tactile-btn tactile-neutral font-semibold border border-border",
+        chip: "rounded-xl tactile-btn tactile-neutral bg-secondary text-secondary-foreground font-semibold",
       },
       size: {
         default: "h-9 px-4 py-2",

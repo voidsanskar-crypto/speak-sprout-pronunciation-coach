@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { soundEvidence } from "./phoneme-review";
 import { diagnosticReport } from "./assessment-diagnostics";
 import { scorePackingClarity } from "./packing-mission";
 import { estimatePitch } from "./pitch";
@@ -8,12 +9,15 @@ import { timedMissions } from "./timed-missions";
 
 describe("new practice tools", () => {
   it("uses known dictionary substitutions and only measured timing for an assessment report", () => {
-    const report = diagnosticReport([
-      { score: scoreTranscript("think", "sink"), speakingMs: 1000 },
-      { score: scoreTranscript("sheep", "ship"), speakingMs: null },
-      { score: scoreTranscript("right", "light"), speakingMs: null },
-      { score: scoreTranscript("book", "zxy"), speakingMs: null },
-    ]);
+    const report = diagnosticReport(
+      [
+        { score: scoreTranscript("think", "sink"), speakingMs: 1000 },
+        { score: scoreTranscript("sheep", "ship"), speakingMs: null },
+        { score: scoreTranscript("right", "light"), speakingMs: null },
+        { score: scoreTranscript("book", "zxy"), speakingMs: null },
+      ],
+      soundEvidence,
+    );
     expect(report.top.map(({ phone }) => phone)).toEqual(["TH", "IY", "R"]);
     expect(report.pacing).toBe(60);
     expect(report.vowels).toBeLessThan(100);

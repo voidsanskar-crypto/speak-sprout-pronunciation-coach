@@ -202,10 +202,10 @@ describe("learning routes", () => {
     expect(container.querySelector(".review-card-exit")).toHaveTextContent("think");
   });
 
-  it("walks through two due words, three scored phrases, and one listening round", () => {
+  it("walks through two due words, three scored phrases, and one listening round", async () => {
     const Daily = DailyRoute.options.component!;
     render(<Daily />);
-    expect(screen.getByText("Step 1 of 6")).toBeVisible();
+    expect(await screen.findByText("Step 1 of 6")).toBeVisible();
     for (const word of ["think", "vest"]) {
       expect(screen.getByText(word, { exact: true })).toBeVisible();
       fireEvent.click(screen.getByRole("button", { name: "Mock matching recording" }));

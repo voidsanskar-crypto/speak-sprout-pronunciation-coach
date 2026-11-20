@@ -92,7 +92,7 @@ export function SpeechPrompt({
         )}
       </div>
       <div className="flex justify-center">
-        <MicButton status={recorder.status} onStart={startRecording} onStop={recorder.stop} />
+        <MicButton status={recorder.status} analyser={recorder.analyser} speaking={recorder.speaking} onStart={startRecording} onStop={recorder.stop} />
       </div>
     </div>
   );

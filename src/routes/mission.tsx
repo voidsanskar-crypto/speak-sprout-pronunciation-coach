@@ -351,7 +351,7 @@ function PackingMission() {
                 <div className="flex items-center gap-3">
                   <div className="shrink-0">
                     <MicButton
-                      status={recorder.status}
+                      status={recorder.status} analyser={recorder.analyser} speaking={recorder.speaking}
                       onStart={() => void recorder.start()}
                       onStop={recorder.stop}
                     />

@@ -227,7 +227,7 @@ function EarSprint() {
                   Audio couldn’t play. Check your sound settings and try again.
                 </p>
               )}
-              <Button variant="hero" size="pill" className="mt-4" onClick={start}>
+              <Button variant="energy" size="pill" className="mt-4" onClick={start}>
                 {stage === "ready" ? "Start 60-second sprint" : "Play again"}
               </Button>
             </>

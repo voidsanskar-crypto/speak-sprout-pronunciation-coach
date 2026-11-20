@@ -1,7 +1,7 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { ScoreGauge } from "@/components/speakup/ScoreGauge";
-import { Waveform } from "@/components/speakup/Waveform";
+import { MicButton } from "@/components/speakup/MicButton";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -37,14 +37,24 @@ it("responds to louder samples and switches to the analysis ring", () => {
       data.fill(sample);
     },
   } as AnalyserNode;
-  const view = render(<Waveform status="listening" analyser={analyser} speaking={false} />);
+  const onStart = vi.fn();
+  const onStop = vi.fn();
+  const view = render(<MicButton onStart={onStart} onStop={onStop} status="idle" />);
+  fireEvent.click(screen.getByRole("button", { name: "Tap to speak" }));
+  expect(onStart).toHaveBeenCalledOnce();
+  view.rerender(
+    <MicButton onStart={onStart} onStop={onStop} status="listening" analyser={analyser} />,
+  );
   const orb = view.container.querySelector<HTMLElement>(".voice-orb")!;
   act(() => frame?.(0));
   expect(orb.style.getPropertyValue("--voice-level")).toBe("0");
   sample = 166;
   act(() => frame?.(16));
   expect(Number(orb.style.getPropertyValue("--voice-level"))).toBeGreaterThan(0);
-  view.rerender(<Waveform status="processing" analyser={null} speaking={false} />);
+  fireEvent.click(screen.getByRole("button", { name: "Stop recording" }));
+  expect(onStop).toHaveBeenCalledOnce();
+  view.rerender(<MicButton onStart={onStart} onStop={onStop} status="processing" />);
   expect(orb).toHaveAttribute("data-status", "processing");
+  expect(screen.getByRole("button", { name: "Analyzing recording" })).toBeDisabled();
   expect(orb.style.getPropertyValue("--voice-level")).toBe("");
 });

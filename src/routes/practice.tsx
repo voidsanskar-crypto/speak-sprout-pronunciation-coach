@@ -15,7 +15,6 @@ import { MobileShell } from "@/components/speakup/MobileShell";
 import { Mascot } from "@/components/speakup/Mascot";
 import { MicButton } from "@/components/speakup/MicButton";
 import { MicHelp } from "@/components/speakup/MicHelp";
-import { Waveform } from "@/components/speakup/Waveform";
 import { scoreTone } from "@/components/speakup/ScoreGauge";
 import { PitchShadowing } from "@/components/speakup/PitchShadowing";
 import { PracticeFeedback } from "@/components/speakup/PracticeFeedback";
@@ -93,12 +92,19 @@ function Practice() {
   const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
   const [sessionScores, setSessionScores] = useState<number[]>([]);
   useEffect(() => {
-    setQueue(buildQueue({ topic, sound, phone, level }, getProgressSnapshot()));
+    let active = true;
+    setQueue(null);
+    void buildQueue({ topic, sound, phone, level }, getProgressSnapshot()).then((phrases) => {
+      if (active) setQueue(phrases);
+    });
     setIndex(0);
     setStage("practice");
     setResult(null);
     setRecordingUrl(null);
     setSessionScores([]);
+    return () => {
+      active = false;
+    };
   }, [topic, sound, phone, level]);
 
   useEffect(
@@ -176,7 +182,7 @@ function Practice() {
       {!queue ? (
         <div className="mt-10 h-80 animate-pulse rounded-[2rem] bg-card/70" />
       ) : !phrase ? (
-        <section className="mt-8 rounded-[2rem] border border-border bg-card p-6">
+        <section className="mt-8 clay-card rounded-3xl bg-card p-6">
           <h1 className="font-display text-2xl font-bold">No matching phrases</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Choose another level or topic in the library.
@@ -294,7 +300,7 @@ function PracticeCard({
     <div className="mt-6 flex flex-col items-center">
       <div
         className={cn(
-          "w-full touch-pan-y select-none rounded-[2rem] bg-card p-6 shadow-card transition-[transform,opacity] animate-pop-in",
+          "clay-card w-full touch-pan-y select-none rounded-3xl bg-card p-4 sm:p-6 transition-[transform,opacity] animate-pop-in",
           startX.current === null && "duration-300",
           leaving && "-translate-x-[120%] opacity-0",
         )}
@@ -408,8 +414,7 @@ function PracticeCard({
             onDismiss={recorder.clearError}
           />
         ) : (
-          <div className="flex min-h-20 flex-col items-center justify-center">
-            <Waveform status={status} analyser={recorder.analyser} speaking={recorder.speaking} />
+          <div className="flex min-h-7 flex-col items-center justify-center">
             <p
               role="status"
               className={cn(
@@ -431,10 +436,10 @@ function PracticeCard({
         )}
       </div>
 
-      <div className="mt-4 grid w-full grid-cols-3 items-center">
+      <div className="mt-2 grid w-full grid-cols-[1fr_auto_1fr] items-center">
         <span />
         <div className="flex justify-center">
-          <MicButton status={status} onStart={() => void recorder.start()} onStop={recorder.stop} />
+          <MicButton status={status} analyser={recorder.analyser} speaking={recorder.speaking} onStart={() => void recorder.start()} onStop={recorder.stop} />
         </div>
         <div className="flex justify-end">
           <Button

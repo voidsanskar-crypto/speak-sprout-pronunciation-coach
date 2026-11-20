@@ -53,13 +53,14 @@ function Home() {
   return (
     <MobileShell>
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1.75fr)_minmax(0,1fr)]">
-        <section className="relative isolate min-h-60 overflow-hidden rounded-[1.75rem] border border-primary/15 bg-primary-soft p-5 sm:p-7">
+        <section className="clay-card relative isolate min-h-60 overflow-hidden rounded-3xl bg-primary-soft p-5 sm:p-7">
           <div
             aria-hidden="true"
             className="absolute -right-12 -top-16 -z-10 size-72 rounded-full bg-secondary sm:size-88"
           />
           <Mascot
             eager
+            sizes="(min-width: 1280px) 212px, (min-width: 640px) 192px, (min-width: 375px) 144px, 112px"
             className="absolute -bottom-4 -right-7 -z-10 w-28 min-[375px]:-right-2 min-[375px]:w-36 sm:-bottom-7 sm:right-0 sm:w-48 xl:right-2 xl:w-53"
           />
           <div className="max-w-[15rem] sm:max-w-68">
@@ -86,7 +87,7 @@ function Home() {
           </div>
         </section>
 
-        <section className="tactile flex flex-col justify-between rounded-[1.75rem] bg-card p-5 sm:p-6">
+        <section className="clay-card flex flex-col justify-between rounded-[1.75rem] bg-card p-5 sm:p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
               <h2 className="font-display text-xl font-semibold">Today’s goal</h2>
@@ -170,7 +171,7 @@ function Home() {
       </section>
       <section
         aria-labelledby="explore-library"
-        className="mt-6 rounded-[1.5rem] border-2 border-border bg-card p-4 shadow-card sm:p-5"
+        className="mt-6 clay-card rounded-3xl bg-card p-4 sm:p-5"
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 id="explore-library" className="font-display text-xl font-semibold">

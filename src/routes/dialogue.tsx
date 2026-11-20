@@ -386,7 +386,7 @@ function Dialogue() {
             />
             <Button
               className="mt-3 w-full"
-              variant="hero"
+              variant="special"
               disabled={custom.trim().length < 6}
               onClick={() =>
                 start({
@@ -487,7 +487,7 @@ function Dialogue() {
               </p>
               <Button
                 className="mt-4 w-full"
-                variant="hero"
+                variant="special"
                 onClick={() => {
                   setScene(null);
                   setTurns([]);
@@ -579,7 +579,7 @@ function Dialogue() {
                 />
                 <Button
                   className="mt-3 w-full"
-                  variant="hero"
+                  variant="special"
                   disabled={!draft.trim() || busy || reviewing}
                   onClick={() => void send()}
                 >
@@ -700,7 +700,7 @@ function OpenMic({
         />
       ) : (
         <MicButton
-          status={recorder.status}
+          status={recorder.status} analyser={recorder.analyser} speaking={recorder.speaking}
           onStart={() => void recorder.start()}
           onStop={recorder.stop}
         />

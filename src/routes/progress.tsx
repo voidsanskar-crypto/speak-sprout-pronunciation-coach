@@ -1,17 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Award, Flame, Languages, Lock, Star, Target, Zap } from "lucide-react";
-import { useState } from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { useEffect, useState } from "react";
 import { MobileShell } from "@/components/speakup/MobileShell";
 import { LanguagePicker } from "@/components/speakup/LanguagePicker";
 import { Button } from "@/components/ui/button";
@@ -58,6 +47,24 @@ const dayLabel = (key: string) => {
 function ProgressPage() {
   const progress = useProgress();
   const hydrated = useHydrated();
+  const [charts, setCharts] = useState<typeof import("@/components/speakup/ProgressCharts")>();
+  const [chartError, setChartError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void import("@/components/speakup/ProgressCharts").then(
+      (module) => {
+        if (active) setCharts(module);
+      },
+      () => {
+        if (active) setChartError(true);
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const [pickerOpen, setPickerOpen] = useState(false);
   const today = hydrated ? toDateKey(new Date()) : "2000-01-01";
   const days = lastNDays(today, 7);
@@ -112,68 +119,24 @@ function ProgressPage() {
       <div className="grid gap-x-3 md:grid-cols-2">
         <Card title="Weekly activity" subtitle="Phrases practiced per day">
           <div className="h-44">
-            {hydrated && (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={weekly} margin={{ top: 8, right: 4, left: -28, bottom: 0 }}>
-                  <CartesianGrid vertical={false} stroke="var(--border)" />
-                  <XAxis
-                    dataKey="day"
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
-                  />
-                  <YAxis
-                    allowDecimals={false}
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
-                  />
-                  <Tooltip
-                    cursor={{ fill: "var(--muted)" }}
-                    contentStyle={{ borderRadius: 16, border: "1px solid var(--border)" }}
-                  />
-                  <Bar
-                    dataKey="phrases"
-                    name="Phrases"
-                    fill="var(--primary)"
-                    radius={[10, 10, 4, 4]}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+            {charts ? (
+              <charts.WeeklyActivity weekly={weekly} />
+            ) : (
+              <p role="status" className="text-sm text-muted-foreground">
+                {chartError ? "Chart unavailable" : "Loading chart…"}
+              </p>
             )}
           </div>
         </Card>
 
         <Card title="Average score trend" subtitle="Last 7 days">
           <div className="h-44">
-            {hydrated && (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={weekly} margin={{ top: 8, right: 8, left: -28, bottom: 0 }}>
-                  <CartesianGrid vertical={false} stroke="var(--border)" />
-                  <XAxis
-                    dataKey="day"
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
-                  />
-                  <YAxis
-                    domain={[0, 100]}
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
-                  />
-                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid var(--border)" }} />
-                  <Line
-                    type="monotone"
-                    dataKey="avg"
-                    name="Avg score"
-                    stroke="var(--accent)"
-                    strokeWidth={3.5}
-                    dot={{ r: 4, fill: "var(--accent)" }}
-                    connectNulls
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+            {charts ? (
+              <charts.ScoreTrend weekly={weekly} />
+            ) : (
+              <p role="status" className="text-sm text-muted-foreground">
+                {chartError ? "Chart unavailable" : "Loading chart…"}
+              </p>
             )}
           </div>
         </Card>
@@ -269,7 +232,7 @@ function ProgressPage() {
 
 function StatTile({ icon, value, label }: { icon: React.ReactNode; value: string; label: string }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 [&_svg]:size-5">
+    <div className="clay-card rounded-2xl bg-card p-4 [&_svg]:size-5">
       {icon}
       <p className="mt-2 font-display text-2xl font-bold">{value}</p>
       <p className="text-xs font-bold text-muted-foreground">{label}</p>
@@ -287,7 +250,7 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <section className="mt-5 min-w-0 rounded-[1.5rem] border border-border bg-card p-5">
+    <section className="mt-5 min-w-0 clay-card rounded-3xl bg-card p-5">
       <h2 className="font-display text-xl font-semibold">{title}</h2>
       {subtitle && <p className="mb-3 text-sm text-muted-foreground">{subtitle}</p>}
       {!subtitle && <div className="mb-3" />}

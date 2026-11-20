@@ -6,7 +6,8 @@ import { usePhonemeAudio } from "@/hooks/use-phoneme-audio";
 import { useProgress } from "@/hooks/use-progress";
 import { useTextTranslations } from "@/hooks/use-translations";
 import { compareSpelling } from "@/lib/compare-spelling";
-import { dictionarySoundContrast, type DictionaryContrast } from "@/lib/phoneme-review";
+import type { DictionaryContrast } from "@/lib/phoneme-review";
+import { usePronunciationDictionary } from "@/hooks/use-pronunciation-dictionary";
 import { SOUND_COACHING, type CoachedSound } from "@/lib/phonemes";
 import type { ScoreResult, WordResult } from "@/lib/scoring";
 import { speak } from "@/lib/speech";
@@ -48,11 +49,12 @@ export function WordMatchReview({
 }) {
   const { translationLanguage } = useProgress();
   const words = result.words.filter((word) => word.status !== "correct");
+  const dictionary = usePronunciationDictionary(words.some((word) => word.heard));
   if (!words.length && !result.extraWords.length) return null;
 
   const contrasts = new Map<number, DictionaryContrast>();
   for (const word of words) {
-    const contrast = dictionarySoundContrast(
+    const contrast = dictionary?.dictionarySoundContrast(
       word.targetSpelling ?? word.target,
       word.heardSpelling ?? word.heard,
     );
@@ -174,7 +176,7 @@ function Review({
                     <p dir="auto" className="text-xs font-bold">
                       {copy.soundContrast}
                     </p>
-                    <div className="mt-1 grid grid-cols-2 gap-2 text-sm">
+                    <div className="mt-2 grid grid-cols-[repeat(2,minmax(0,1fr))] gap-2 text-sm">
                       <div>
                         <span dir="auto" className="text-xs text-muted-foreground">
                           {copy.expected}
@@ -260,7 +262,7 @@ function Phones({
   translated: Record<string, string> | undefined;
 }) {
   return (
-    <div dir="ltr" className="mt-1 flex flex-wrap gap-1">
+    <div dir="ltr" className="mt-1 flex flex-wrap gap-x-1 gap-y-2 pb-1">
       {sounds.map(({ phone, sound, different }, index) => {
         const id = `${group}:${index}`;
         return (
@@ -275,9 +277,9 @@ function Phones({
               <button
                 type="button"
                 className={cn(
-                  "inline-flex min-h-9 min-w-9 items-center justify-center rounded-full border px-2 font-semibold outline-offset-2 hover:brightness-95",
+                  "tactile-btn inline-flex min-h-9 min-w-9 items-center justify-center rounded-full border px-2 font-semibold outline-offset-2 focus-visible:outline-2 focus-visible:outline-primary",
                   different
-                    ? "phoneme-difference border-danger/65 bg-danger-soft text-danger"
+                    ? "phoneme-difference border-danger/65 bg-danger-soft text-danger [--lip-color:var(--danger)]"
                     : "border-border bg-card text-foreground",
                 )}
                 aria-label={`${copy.playSound} /${sound}/`}

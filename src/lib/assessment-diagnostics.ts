@@ -1,11 +1,11 @@
 import { VOWEL_PHONES, type CoachedSound } from "./phonemes";
-import { soundEvidence } from "./phoneme-review";
+import type { soundEvidence } from "./phoneme-review";
 import { tokenize, type ScoreResult } from "./scoring";
 
 type Take = { score: ScoreResult; speakingMs: number | null };
 
-export function diagnosticReport(takes: readonly Take[]) {
-  const evidence = soundEvidence(takes.flatMap(({ score }) => score.words));
+export function diagnosticReport(takes: readonly Take[], collectEvidence?: typeof soundEvidence) {
+  const evidence = collectEvidence?.(takes.flatMap(({ score }) => score.words)) ?? [];
   function matchRate(vowels: boolean) {
     const group = evidence.filter(({ phone }) => VOWEL_PHONES.has(phone) === vowels);
     return group.length

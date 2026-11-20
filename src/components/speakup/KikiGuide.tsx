@@ -141,7 +141,7 @@ function GuideBubble({ advice }: { advice: Guidance }) {
           type="button"
           aria-label="Ask Kiki for help"
           title="Ask Kiki"
-          className="group pointer-events-auto inline-flex items-center rounded-full border border-primary/20 bg-card pl-1 pr-4 font-display font-bold text-primary shadow-card hover:bg-primary-soft focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+          className="group tactile-btn tactile-neutral pointer-events-auto inline-flex items-center rounded-full border border-primary/20 bg-card pl-1 pr-4 font-display font-bold text-primary shadow-card hover:bg-primary-soft focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
         >
           <img
             src={avatar}
@@ -159,7 +159,7 @@ function GuideBubble({ advice }: { advice: Guidance }) {
         align="end"
         collisionPadding={12}
         aria-label="Kiki’s practice guide"
-        className="w-80 max-w-[calc(100vw-24px)] rounded-3xl p-4"
+        className="w-80 max-w-[calc(100vw-24px)] clay-card rounded-3xl p-4"
       >
         <div className="flex items-center gap-2">
           <img

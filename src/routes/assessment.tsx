@@ -7,6 +7,7 @@ import { ArrowRight, Home, RotateCcw } from "lucide-react";
 import { MobileShell } from "@/components/speakup/MobileShell";
 import { SpeechPrompt } from "@/components/speakup/SpeechPrompt";
 import { Button } from "@/components/ui/button";
+import { usePronunciationDictionary } from "@/hooks/use-pronunciation-dictionary";
 import { diagnosticReport } from "@/lib/assessment-diagnostics";
 import { PHONEME_IPA } from "@/lib/phonemes";
 import {
@@ -42,7 +43,8 @@ function Assessment() {
       setLast(null);
     }
   };
-  const report = result ? diagnosticReport(takes) : null;
+  const dictionary = usePronunciationDictionary(Boolean(result));
+  const report = result ? diagnosticReport(takes, dictionary?.soundEvidence) : null;
   return (
     <MobileShell nav={false}>
       <div className="flex items-center gap-3">
@@ -128,7 +130,11 @@ function Assessment() {
               </ul>
             ) : (
               <p className="mt-1 text-sm text-muted-foreground">
-                No clear sound substitutions appeared in these transcripts.
+                {dictionary === undefined
+                  ? "Loading sound comparisons…"
+                  : dictionary === null
+                    ? "Sound comparisons are unavailable. Your word matches are still available."
+                    : "No clear sound substitutions appeared in these transcripts."}
               </p>
             )}
           </section>
@@ -145,7 +151,7 @@ function Assessment() {
                 );
                 setPlanReady(true);
               }}
-              disabled={planReady || (!report.reviewWords.length && !report.top.length)}
+              disabled={dictionary === undefined || planReady || (!report.reviewWords.length && !report.top.length)}
             >
               Generate my custom training plan
             </Button>

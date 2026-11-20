@@ -1,5 +1,4 @@
 import type { CoachedSound } from "./phonemes";
-import { textUsesPhones } from "./phoneme-review";
 import { PHRASES, phrasesForTopic, type Phrase } from "./phrases";
 import { DAILY_GOAL, MASTERED_SCORE, type ProgressState } from "./progress";
 import { detectSounds, type SoundId } from "./sounds";
@@ -21,7 +20,7 @@ export function phrasesWithSound(sound: SoundId): Phrase[] {
 }
 
 /** Build the list of phrases for a practice session; unmastered phrases come first. */
-export function buildQueue(
+export async function buildQueue(
   opts: {
     topic?: TopicId | undefined;
     sound?: SoundId | undefined;
@@ -30,7 +29,7 @@ export function buildQueue(
   },
   state: ProgressState,
   rand: () => number = Math.random,
-): Phrase[] {
+): Promise<Phrase[]> {
   const isMastered = (p: Phrase) => (state.best[p.id] ?? 0) >= MASTERED_SCORE;
   const prioritise = (list: Phrase[]) => [
     ...shuffle(
@@ -52,6 +51,11 @@ export function buildQueue(
     if (recentAverage >= 86) levelIndex = Math.min(2, levelIndex + 1);
     else if (recentAverage < 52) levelIndex = Math.max(0, levelIndex - 1);
   }
+  const focusPhones = new Set(assessment?.focusPhones);
+  const dictionary =
+    opts.phone || (!opts.sound && !opts.topic && focusPhones.size)
+      ? await import("./phoneme-review").catch(() => null)
+      : null;
   if (opts.phone) {
     const focus = new Set([opts.phone]);
     return prioritise(
@@ -59,7 +63,7 @@ export function buildQueue(
         (phrase) =>
           (!opts.level || phrase.difficulty === opts.level) &&
           (!opts.topic || phrase.topic === opts.topic) &&
-          textUsesPhones(phrase.text, focus),
+          dictionary?.textUsesPhones(phrase.text, focus),
       ),
     ).slice(0, 8);
   }
@@ -89,12 +93,11 @@ export function buildQueue(
       bRank = topicOrder.indexOf(b.topic);
     return (aRank < 0 ? 99 : aRank) - (bRank < 0 ? 99 : bRank);
   });
-  const focusPhones = new Set(assessment?.focusPhones);
   const weakSounds = assessment?.weakSounds ?? [];
   if (!weakSounds.length && !focusPhones.size) return daily.slice(0, DAILY_GOAL);
   const targeted = daily.filter((phrase) =>
-    focusPhones.size
-      ? textUsesPhones(phrase.text, focusPhones)
+    dictionary && focusPhones.size
+      ? dictionary.textUsesPhones(phrase.text, focusPhones)
       : phrase.text
           .split(/\s+/)
           .some((word) => detectSounds(word).some((sound) => weakSounds.includes(sound))),
