@@ -13,7 +13,7 @@ from pathlib import Path
 SOURCE_FILES = (
     "src/lib/phrases.ts",
     "src/lib/assessment.ts",
-    "src/routes/minimal-pairs.tsx",
+    "src/lib/minimal-pairs.ts",
 )
 
 parser = argparse.ArgumentParser(description=__doc__)
@@ -24,8 +24,9 @@ repo = Path(__file__).resolve().parents[1]
 target_words = set()
 for path in SOURCE_FILES:
     source = (repo / path).read_text(encoding="utf-8")
-    if path.endswith("minimal-pairs.tsx"):
-        source = source.split("type PairStart", 1)[0]
+    if path.endswith("minimal-pairs.ts"):
+        target_words.update(re.findall(r'\[\s*"([a-z]+)",\s*"', source))
+        continue
     for literal in re.findall(r"""["]([A-Za-z0-9 ,.!?&;’'–—/-]+)["]""", source):
         target_words.update(re.findall(r"[a-z]+(?:['’-][a-z]+)*", literal.lower()))
 

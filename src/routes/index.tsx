@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, CalendarClock, AudioLines, Gamepad2, Mic, Sprout } from "lucide-react";
+import { ArrowRight, AudioLines, CalendarClock, Gamepad2, Mic, Sprout } from "lucide-react";
 import { Mascot } from "@/components/speakup/Mascot";
 import { MobileShell } from "@/components/speakup/MobileShell";
 import { Ring } from "@/components/speakup/Ring";
@@ -11,6 +11,8 @@ import { ACCENT_DRILLS } from "@/lib/accent-drills";
 import { PHONEME_IPA } from "@/lib/phonemes";
 import { loadAssessment } from "@/lib/assessment";
 import { DAILY_GOAL, phrasesDoneOn, toDateKey } from "@/lib/progress";
+import { SOUNDS } from "@/lib/sounds";
+import { TOPICS } from "@/lib/topics";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -33,6 +35,9 @@ export const Route = createFileRoute("/")({
   }),
   component: Home,
 });
+
+const featuredTopics = TOPICS.filter(({ id }) => id !== "sounds");
+const featuredSounds = ["TH", "R", "V"] as const;
 
 function Home() {
   const progress = useProgress();
@@ -163,12 +168,60 @@ function Home() {
           </Link>
         </Button>
       </section>
-      <Link
-        to="/skills"
-        className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-primary"
+      <section
+        aria-labelledby="explore-library"
+        className="mt-6 rounded-[1.5rem] border border-border bg-card p-4 sm:p-5"
       >
-        Explore the library <ArrowRight aria-hidden="true" className="size-4" />
-      </Link>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="explore-library" className="font-display text-xl font-semibold">
+            Explore the library
+          </h2>
+          <Link
+            to="/skills"
+            className="inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:underline"
+          >
+            Open Sound Lab &amp; Library <ArrowRight aria-hidden="true" className="size-4" />
+          </Link>
+        </div>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <div>
+            <h3 className="text-sm font-bold">Phrase topics</h3>
+            <ul className="mt-2 flex flex-wrap gap-2">
+              {featuredTopics.map(({ id, name }) => (
+                <li key={id}>
+                  <Link
+                    to="/practice"
+                    search={{ topic: id }}
+                    className="inline-flex min-h-10 items-center rounded-xl border border-border px-3 text-sm font-bold hover:border-primary/40 hover:bg-primary-soft"
+                  >
+                    {name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h3 className="text-sm font-bold">Quick sound drills</h3>
+            <ul className="mt-2 flex flex-wrap gap-2">
+              {featuredSounds.map((sound) => (
+                <li key={sound}>
+                  <Link
+                    to="/practice"
+                    search={{ sound }}
+                    className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-primary-soft px-3 text-sm font-bold text-primary hover:bg-secondary"
+                  >
+                    <span>{SOUNDS[sound].label}</span>
+                    <span className="text-xs font-medium">
+                      {SOUNDS[sound].example.split(",")[0]}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
     </MobileShell>
   );
 }

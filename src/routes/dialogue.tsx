@@ -30,12 +30,19 @@ import { groqReview, groqRoleplay } from "@/lib/ai/groq.functions";
 import { speak, stopSpeaking } from "@/lib/speech";
 
 type Checkpoint = { label: string; expression: RegExp; spokenOnly?: boolean };
-type Scene = { title: string; role: string; scenario: string; checkpoints: Checkpoint[] };
+type Scene = {
+  title: string;
+  role: string;
+  scenario: string;
+  opening?: string;
+  checkpoints: Checkpoint[];
+};
 
 const scenes: Scene[] = [
   {
     title: "Order at a café",
     role: "Barista",
+    opening: "Good morning! What would you like today?",
     checkpoints: [
       { label: "Order a drink", expression: /\b(?:latte|coffee|tea|espresso|cappuccino)\b/i },
       { label: "Say “three” aloud (/θ/ drill)", expression: /\b(?:three|3)\b/i, spokenOnly: true },
@@ -46,6 +53,7 @@ const scenes: Scene[] = [
   {
     title: "Check into a hotel",
     role: "Receptionist",
+    opening: "Welcome to the hotel. Do you have a reservation?",
     checkpoints: [
       { label: "Use “reservation”", expression: /\breservations?\b/i },
       { label: "Say “three” aloud (/θ/ drill)", expression: /\b(?:three|3)\b/i, spokenOnly: true },
@@ -60,6 +68,7 @@ const scenes: Scene[] = [
   {
     title: "Meet a recruiter",
     role: "Recruiter",
+    opening: "Thanks for coming in. Could you tell me a little about your experience?",
     checkpoints: [
       {
         label: "Describe your experience",
@@ -77,8 +86,143 @@ const scenes: Scene[] = [
     scenario:
       "The learner is in a friendly job interview and should explain their experience and ask thoughtful questions.",
   },
+  {
+    title: "Find a missing suitcase",
+    role: "Airport baggage agent",
+    opening: "Hi there. What happened to your luggage?",
+    checkpoints: [
+      {
+        label: "Report a missing bag",
+        expression:
+          /\b(?:bag|suitcase|luggage|baggage)\b.*\b(?:missing|lost|not|didn.t)\b|\b(?:missing|lost)\b.*\b(?:bag|suitcase|luggage|baggage)\b/i,
+      },
+      {
+        label: "Describe the bag",
+        expression:
+          /\b(?:black|blue|red|gray|grey|green|brown|white|yellow|pink|purple|striped)\b/i,
+      },
+      {
+        label: "Ask how to follow up",
+        expression: /\b(?:track|reference number|claim number|contact|call|status|update)\b/i,
+      },
+    ],
+    scenario:
+      "The learner’s suitcase did not arrive at the carousel. Ask how to identify it, then help the learner file a missing-bag report and find out how to track it.",
+  },
+  {
+    title: "Return a purchase",
+    role: "Store associate",
+    opening: "Hi. How can I help you with your purchase today?",
+    checkpoints: [
+      {
+        label: "Ask for a return or exchange",
+        expression: /\b(?:return|exchange|refund|replace)\b/i,
+      },
+      {
+        label: "Explain what went wrong",
+        expression:
+          /\b(?:broken|damaged|defective|wrong|too small|too big|doesn.t fit|doesn.t work|not working)\b/i,
+      },
+      {
+        label: "Mention proof of purchase",
+        expression: /\b(?:receipt|order number|confirmation|proof of purchase)\b/i,
+      },
+    ],
+    scenario:
+      "The learner wants to return or exchange something they bought. Ask what went wrong and whether they have a receipt, then explain the available options.",
+  },
+  {
+    title: "Make weekend plans",
+    role: "Friend",
+    opening: "Hey! Are you free this weekend?",
+    checkpoints: [
+      {
+        label: "Suggest an activity",
+        expression:
+          /\b(?:movie|cinema|coffee|lunch|dinner|museum|park|hike|walk|picnic|concert|bowling)\b/i,
+      },
+      {
+        label: "Suggest a day or time",
+        expression:
+          /\b(?:saturday|sunday|morning|afternoon|evening|noon|[1-9](?::[0-5]\d)?\s*(?:am|pm|o.clock))\b/i,
+      },
+      {
+        label: "Confirm the plan",
+        expression: /\b(?:sounds good|works for me|see you|let.s meet|it.s a plan|that works)\b/i,
+      },
+    ],
+    scenario:
+      "A friend wants to make a weekend plan. Let the learner suggest what to do, negotiate a time that works for both of you, and confirm when and where to meet.",
+  },
+  {
+    title: "Negotiate a deadline",
+    role: "Project teammate",
+    opening: "How’s the deliverable going? Are we still on track?",
+    checkpoints: [
+      {
+        label: "Explain the delay",
+        expression: /\b(?:delay|delayed|behind|blocked|problem|because|waiting)\b/i,
+      },
+      {
+        label: "Propose a new deadline",
+        expression:
+          /\b(?:by|until|move it to|extend it to)\s+(?:tomorrow|monday|tuesday|wednesday|thursday|friday|next week|the end of|[1-9])/i,
+      },
+      {
+        label: "Offer an update or partial delivery",
+        expression: /\b(?:update|first draft|partial|outline|progress|status)\b/i,
+      },
+    ],
+    scenario:
+      "A project deliverable may be late. Ask the learner to explain the delay, suggest a revised deadline, and agree on an interim update or partial delivery.",
+  },
+  {
+    title: "Book an appointment",
+    role: "Office receptionist",
+    opening: "Good morning. How can I help you?",
+    checkpoints: [
+      {
+        label: "Request an appointment",
+        expression: /\b(?:appointment|book a time|schedule a visit)\b/i,
+      },
+      {
+        label: "Give your availability",
+        expression:
+          /\b(?:monday|tuesday|wednesday|thursday|friday|morning|afternoon|after work|before noon)\b/i,
+      },
+      {
+        label: "Confirm the booking",
+        expression: /\b(?:that works|works for me|yes please|confirm|book it|see you|i.ll take)\b/i,
+      },
+    ],
+    scenario:
+      "The learner is calling an office to book an appointment. Offer two time slots, ask which fits their schedule, and confirm the chosen time. Use fictional booking details.",
+  },
+  {
+    title: "Ask for directions",
+    role: "Visitor information clerk",
+    opening: "Hi! Where are you trying to get to?",
+    checkpoints: [
+      {
+        label: "Ask how to reach a place",
+        expression:
+          /\b(?:where|how|which way|directions?|find)\b.*\b(?:station|museum|market|park|library|hotel)\b/i,
+      },
+      {
+        label: "Check a turn or landmark",
+        expression: /\b(?:left|right|straight|corner|bridge|crossing|landmark)\b/i,
+      },
+      {
+        label: "Ask how long it takes",
+        expression: /\b(?:how long|how far|minutes?|walking distance)\b/i,
+      },
+    ],
+    scenario:
+      "The learner wants directions in an unfamiliar town. Give a short route using a landmark, answer clarification questions, and estimate the walking time.",
+  },
 ];
 const CONTEXT_LIMIT = 20;
+const DEFAULT_OPENING = "Hi! Welcome. What brings you here today?";
 type Turn = { role: "user" | "assistant"; content: string };
 type Review = { overall: string; strengths: string[]; languageTip: string; taskProgress: string };
 export const Route = createFileRoute("/dialogue")({ component: Dialogue });
@@ -120,7 +264,11 @@ function Dialogue() {
   const send = async () => {
     const text = draft.trim();
     if (!scene || !text || request.current) return;
-    const history: Turn[] = [...turns, { role: "user", content: text }];
+    const opening: Turn = { role: "assistant", content: scene.opening ?? DEFAULT_OPENING };
+    const history: Turn[] = [
+      ...(turns.length ? turns : [opening]),
+      { role: "user", content: text },
+    ];
     const id = Symbol();
     request.current = id;
     setBusy(true);
@@ -195,19 +343,24 @@ function Dialogue() {
             Choose a roleplay or make your own. Speak or type, and your AI partner will keep the
             conversation moving.
           </p>
-          <div className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             {scenes.map((item) => (
               <button
                 key={item.title}
                 onClick={() => start(item)}
-                className="w-full rounded-[2rem] bg-card p-5 text-left shadow-card"
+                className="w-full rounded-2xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/35 hover:bg-primary-soft"
               >
-                <span className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wide text-primary">
-                  <MessageCircle className="size-4" /> Roleplay
-                </span>
-                <span className="mt-2 block font-display text-xl font-bold">{item.title}</span>
-                <span className="mt-1 block text-sm text-muted-foreground">
-                  Speak with a {item.role.toLowerCase()}
+                <span className="flex items-start gap-2.5">
+                  <MessageCircle
+                    aria-hidden="true"
+                    className="mt-0.5 size-4 shrink-0 text-primary"
+                  />
+                  <span>
+                    <span className="block font-display text-lg font-bold leading-tight">
+                      {item.title}
+                    </span>
+                    <span className="mt-1 block text-sm text-muted-foreground">{item.role}</span>
+                  </span>
                 </span>
               </button>
             ))}
@@ -350,12 +503,12 @@ function Dialogue() {
                 {turns.length === 0 && (
                   <div className="rounded-2xl bg-secondary p-4 text-secondary-foreground">
                     <p className="text-xs font-extrabold uppercase">{scene.role}</p>
-                    <p className="mt-1">Hi! Welcome. What brings you here today?</p>
+                    <p className="mt-1">{scene.opening ?? DEFAULT_OPENING}</p>
                     <Button
                       className="mt-2"
                       size="sm"
                       variant="soft"
-                      onClick={() => speak("Hi! Welcome. What brings you here today?")}
+                      onClick={() => speak(scene.opening ?? DEFAULT_OPENING)}
                     >
                       <Volume2 /> Hear example
                     </Button>

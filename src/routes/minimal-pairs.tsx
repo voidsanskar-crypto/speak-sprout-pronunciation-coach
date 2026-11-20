@@ -5,99 +5,17 @@ import { MobileShell } from "@/components/speakup/MobileShell";
 import { SpeechPrompt } from "@/components/speakup/SpeechPrompt";
 import { Button } from "@/components/ui/button";
 import { recordTroubleWords } from "@/hooks/use-progress";
+import {
+  buildMinimalPairRounds,
+  DAILY_PAIR_COUNT,
+  dailyPairOffset,
+  MINIMAL_PAIR_COUNT,
+} from "@/lib/minimal-pairs";
 import { canSpeak, speak, stopSpeaking } from "@/lib/speech";
 import type { ScoreResult } from "@/lib/scoring";
 import { cn } from "@/lib/utils";
 
-const corePairs = [
-  ["sheep", "ship"],
-  ["bat", "bet"],
-  ["think", "sink"],
-  ["right", "light"],
-  ["berry", "very"],
-] as const;
-
-const extraPairs = [
-  ["vest", "west"],
-  ["fan", "van"],
-  ["sip", "ship"],
-  ["thin", "tin"],
-  ["coat", "goat"],
-  ["cap", "cab"],
-  ["pull", "pool"],
-  ["seat", "sit"],
-] as const;
-
-type PairStart = (typeof corePairs | typeof extraPairs)[number][0];
-type Round = { options: readonly [string, string]; target: string; tip: string };
 type Stage = "listen" | "speak" | "done";
-
-function shuffled<T>(list: readonly T[]): T[] {
-  const options = [...list];
-  for (let i = options.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [options[i], options[j]] = [options[j]!, options[i]!];
-  }
-  return options;
-}
-
-function buildRounds(): Round[] {
-  return shuffled([...corePairs, ...shuffled(extraPairs).slice(0, 8 - corePairs.length)]).map(
-    (pair) => ({
-      options: Math.random() < 0.5 ? pair : [pair[1], pair[0]],
-      target: pair[Math.random() < 0.5 ? 0 : 1],
-      tip: pairTips[pair[0]],
-    }),
-  );
-}
-
-const pairTips: Record<PairStart, string> = {
-  sheep:
-    "For /iː/ in sheep, bring your tongue high and forward. Let it sit a little lower for /ɪ/ in ship.",
-  bat: "Open your jaw wider for /æ/ in bat. Keep your tongue toward the front and lift your jaw a little for /ɛ/ in bet.",
-  think:
-    "For /θ/ in think, put the tip of your tongue lightly between your teeth and let air pass. Keep it behind your teeth for /s/ in sink.",
-  right:
-    "For /ɹ/ in right, keep your tongue from touching the roof of your mouth. For /l/ in light, touch just behind your front teeth.",
-  berry:
-    "For /b/ in berry, close both lips and release them. For /v/ in very, let air pass between your upper teeth and lower lip.",
-  vest: "For /v/ in vest, lightly touch your upper teeth to your lower lip. For /w/ in west, round both lips without touching your teeth.",
-  fan: "Use the same teeth-on-lip position for both. Let air pass quietly for /f/ in fan. Add voice for /v/ in van.",
-  sip: "Keep your tongue just behind your front teeth for /s/ in sip. Pull it back slightly and round your lips for /ʃ/ in ship.",
-  thin: "Let air pass over your tongue tip between your teeth for /θ/ in thin. For /t/ in tin, briefly block the air behind your upper teeth, then release it.",
-  coat: "Lift the back of your tongue toward the soft palate for both sounds. Release without voicing for /k/ in coat, and add voice for /ɡ/ in goat.",
-  cap: "Close both lips at the end of the word. For /p/ in cap, release without voicing. For /b/ in cab, use your voice and keep the vowel a little longer.",
-  pull: "Round your lips for both vowels. Keep your tongue a little lower and relaxed for /ʊ/ in pull. Raise it and hold the vowel longer for /uː/ in pool.",
-  seat: "Bring your tongue high and forward for /iː/ in seat. Lower it slightly and keep the vowel shorter for /ɪ/ in sit.",
-};
-
-const pairIpa: Record<string, string> = {
-  sheep: "ʃiːp",
-  ship: "ʃɪp",
-  bat: "bæt",
-  bet: "bɛt",
-  think: "θɪŋk",
-  sink: "sɪŋk",
-  right: "ɹaɪt",
-  light: "laɪt",
-  berry: "bɛɹi",
-  very: "vɛɹi",
-  vest: "vɛst",
-  west: "wɛst",
-  fan: "fæn",
-  van: "væn",
-  sip: "sɪp",
-  thin: "θɪn",
-  tin: "tɪn",
-  coat: "koʊt",
-  goat: "ɡoʊt",
-  cap: "kæp",
-  cab: "kæb",
-  pull: "pʊl",
-  pool: "puːl",
-  seat: "siːt",
-  sit: "sɪt",
-};
 
 export const Route = createFileRoute("/minimal-pairs")({
   head: () => ({ meta: [{ title: "Minimal Pairs — Speak Sprout" }] }),
@@ -105,7 +23,10 @@ export const Route = createFileRoute("/minimal-pairs")({
 });
 
 function MinimalPairs() {
-  const [rounds, setRounds] = useState<Round[]>([]);
+  const [rounds, setRounds] = useState<ReturnType<typeof buildMinimalPairRounds>>([]);
+  const [sessionLength, setSessionLength] = useState(DAILY_PAIR_COUNT);
+  const [listenOnly, setListenOnly] = useState(false);
+  const [nextOffset, setNextOffset] = useState<number | null>(null);
   const [index, setIndex] = useState(0);
   const [stage, setStage] = useState<Stage>("listen");
   const [played, setPlayed] = useState(false);
@@ -139,7 +60,9 @@ function MinimalPairs() {
 
   function start() {
     stopSpeaking();
-    setRounds(buildRounds());
+    const offset = nextOffset ?? dailyPairOffset(new Date());
+    setRounds(buildMinimalPairRounds(offset, sessionLength));
+    setNextOffset((offset + sessionLength) % MINIMAL_PAIR_COUNT);
     setIndex(0);
     setStage("listen");
     setPlayed(false);
@@ -150,13 +73,9 @@ function MinimalPairs() {
     setAudioError("");
   }
 
-  function continueSpeaking() {
+  function nextPair() {
     stopSpeaking();
     setSpoken(null);
-    if (speakingIndex === 0) {
-      setSpeakingIndex(1);
-      return;
-    }
     if (index + 1 === rounds.length) {
       setStage("done");
       return;
@@ -166,6 +85,16 @@ function MinimalPairs() {
     setPlayed(false);
     setAnswer(null);
     setSpeakingIndex(0);
+  }
+
+  function continueSpeaking() {
+    if (speakingIndex === 0) {
+      stopSpeaking();
+      setSpoken(null);
+      setSpeakingIndex(1);
+      return;
+    }
+    nextPair();
   }
 
   return (
@@ -178,7 +107,7 @@ function MinimalPairs() {
           <div>
             <h1 className="font-display text-3xl font-bold sm:text-4xl">Minimal pairs</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Pick the word you hear, then record and replay both words.
+              Pick the word you hear. Add speaking practice if you want to record both words.
             </p>
           </div>
         </header>
@@ -187,11 +116,37 @@ function MinimalPairs() {
           <section className="mt-5 rounded-[1.5rem] border border-border bg-card p-5">
             <h2 className="font-display text-xl font-semibold">Can you hear the difference?</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Try eight pairs such as sheep and ship, bat and bet, and think and sink.
+              Practice {MINIMAL_PAIR_COUNT} contrasts. The daily set rotates through the collection.
             </p>
-            <Button type="button" variant="hero" size="pill" className="mt-4" onClick={start}>
-              Start game <ArrowRight aria-hidden="true" />
-            </Button>
+            <div className="mt-4 flex flex-wrap items-end gap-3">
+              <div>
+                <label htmlFor="pair-session-length" className="mb-1 block text-sm font-bold">
+                  Session length
+                </label>
+                <select
+                  id="pair-session-length"
+                  className="h-12 rounded-xl border border-border bg-background px-3 text-sm font-semibold"
+                  value={sessionLength}
+                  onChange={(event) => setSessionLength(Number(event.target.value))}
+                >
+                  <option value={DAILY_PAIR_COUNT}>Quick set · {DAILY_PAIR_COUNT} pairs</option>
+                  <option value={16}>Extended · 16 pairs</option>
+                  <option value={MINIMAL_PAIR_COUNT}>Full set · {MINIMAL_PAIR_COUNT} pairs</option>
+                </select>
+              </div>
+              <Button type="button" variant="hero" size="pill" onClick={start}>
+                Start game <ArrowRight aria-hidden="true" />
+              </Button>
+            </div>
+            <label className="mt-3 flex w-fit items-center gap-2 text-sm font-semibold">
+              <input
+                type="checkbox"
+                checked={listenOnly}
+                onChange={(event) => setListenOnly(event.target.checked)}
+                className="size-4 accent-primary"
+              />
+              Listening only
+            </label>
           </section>
         ) : stage === "done" ? (
           <section className="mt-5 rounded-[1.5rem] border border-border bg-card p-5">
@@ -201,7 +156,11 @@ function MinimalPairs() {
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               <Button type="button" variant="hero" onClick={start}>
-                <RotateCcw aria-hidden="true" /> Play again
+                <RotateCcw aria-hidden="true" />{" "}
+                {sessionLength === MINIMAL_PAIR_COUNT ? "Play again" : "Practice another set"}
+              </Button>
+              <Button type="button" variant="soft" onClick={() => setRounds([])}>
+                Change session length
               </Button>
               <Button asChild variant="soft">
                 <Link to="/arcade">Back to Arcade</Link>
@@ -258,7 +217,7 @@ function MinimalPairs() {
                         aria-hidden="true"
                         className="rounded-full bg-card px-2 py-0.5 font-sans text-xs font-bold normal-case"
                       >
-                        /{pairIpa[word]}/
+                        /{round.ipa[word]}/
                       </span>
                       <span className="max-w-full break-words">{word}</span>
                     </button>
@@ -294,11 +253,20 @@ function MinimalPairs() {
                       className="mt-3"
                       variant="hero"
                       onClick={() => {
-                        stopSpeaking();
-                        setStage("speak");
+                        if (listenOnly) {
+                          nextPair();
+                        } else {
+                          stopSpeaking();
+                          setStage("speak");
+                        }
                       }}
                     >
-                      Record both words <ArrowRight aria-hidden="true" />
+                      {listenOnly
+                        ? index + 1 === rounds.length
+                          ? "See results"
+                          : "Next pair"
+                        : "Record both words"}{" "}
+                      <ArrowRight aria-hidden="true" />
                     </Button>
                   </div>
                 )}

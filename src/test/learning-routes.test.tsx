@@ -1,6 +1,8 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { TimedMission } from "@/components/speakup/TimedMission";
+import { Route as DialogueRoute } from "@/routes/dialogue";
 import { Route as DailyRoute } from "@/routes/daily-session";
 import { Route as SprintRoute } from "@/routes/ear-sprint";
 import { DEFAULT_PROGRESS } from "@/lib/progress";
@@ -13,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   reviewDeckWord: vi.fn(),
   recordTroubleWords: vi.fn(),
   awardXp: vi.fn(),
+  groqRoleplay: vi.fn(),
   recordAttempt: vi.fn(),
 }));
 
@@ -35,6 +38,10 @@ vi.mock("@/components/speakup/SpeechPrompt", () => ({
   ),
 }));
 vi.mock("@/components/speakup/WordMatchReview", () => ({ WordMatchReview: () => null }));
+vi.mock("@/lib/ai/groq.functions", () => ({
+  groqRoleplay: mocks.groqRoleplay,
+  groqReview: vi.fn(),
+}));
 vi.mock("@/lib/speech", () => ({
   speak: mocks.speak,
   canSpeak: () => true,
@@ -64,6 +71,7 @@ beforeEach(() => {
   mocks.reviewDeckWord.mockClear();
   mocks.recordTroubleWords.mockClear();
   mocks.awardXp.mockClear();
+  mocks.groqRoleplay.mockReset();
   mocks.recordAttempt.mockClear();
 });
 
@@ -95,22 +103,23 @@ describe("learning routes", () => {
       );
     }
     expect(screen.getByText("8/8")).toBeVisible();
-    for (const pair of ["sheep/ship", "sink/think", "light/right", "berry/very"]) {
-      expect(seen.has(pair)).toBe(true);
-    }
+    expect(seen.size).toBe(8);
   }, 15000);
 
   it("swaps options independently of the mystery word and forwards speaking results to the deck", () => {
     const Game = EarRoute.options.component!;
     render(<Game />);
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(1970, 0, 1, 12));
     const random = vi.spyOn(Math, "random");
-    // The two array shuffles consume 14 draws before the first round is built.
-    for (let i = 0; i < 14; i++) random.mockReturnValueOnce(0.999);
+    // Leave the daily catalog order unchanged, then pick opposite positions for the first round.
+    for (let i = 0; i < 7; i++) random.mockReturnValueOnce(0.999);
     random.mockReturnValueOnce(0.999).mockReturnValueOnce(0).mockReturnValue(0.999);
     try {
       fireEvent.click(screen.getByRole("button", { name: "Start game" }));
     } finally {
       random.mockRestore();
+      vi.useRealTimers();
     }
     const options = screen.getAllByRole("button").filter((button) => button.hasAttribute("lang"));
     expect(options.map((button) => button.getAttribute("aria-label"))).toEqual(["ship", "sheep"]);
@@ -122,6 +131,60 @@ describe("learning routes", () => {
     expect(mocks.recordTroubleWords).toHaveBeenLastCalledWith(
       scoreTranscript("ship", "sink").words,
     );
+  });
+
+  it("can continue to the next pair in a 16-round listening-only session", () => {
+    const Game = EarRoute.options.component!;
+    render(<Game />);
+    fireEvent.change(screen.getByLabelText("Session length"), { target: { value: "16" } });
+    fireEvent.click(screen.getByRole("checkbox", { name: "Listening only" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start game" }));
+    expect(screen.getByText("Pair 1 of 16")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Play mystery word" }));
+    fireEvent.click(screen.getByRole("button", { name: mocks.speak.mock.lastCall?.[0] as string }));
+    fireEvent.click(screen.getByRole("button", { name: "Next pair" }));
+    expect(screen.getByText("Pair 2 of 16")).toBeVisible();
+  });
+
+  it("starts a new preset with a matching role, opener, and checkpoints", async () => {
+    const Dialogue = DialogueRoute.options.component!;
+    mocks.groqRoleplay.mockResolvedValue({ ok: true, reply: "Do you have your receipt?" });
+    render(<Dialogue />);
+    expect(screen.getByRole("button", { name: /Negotiate a deadline/ })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Create your scenario" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: /Return a purchase/ }));
+    expect(screen.getByText("Hi. How can I help you with your purchase today?")).toBeVisible();
+    fireEvent.change(screen.getByRole("textbox", { name: "Your response" }), {
+      target: { value: "I’d like to return this. It’s broken." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Send response" }));
+    expect(await screen.findByText("Do you have your receipt?")).toBeVisible();
+    expect(mocks.groqRoleplay).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        role: "Store associate",
+        history: expect.arrayContaining([expect.objectContaining({ role: "assistant" })]),
+      }),
+    });
+    const checklist = within(screen.getByRole("region", { name: "Conversation checkpoints" }));
+    expect(checklist.getAllByText("Completed:").length).toBe(2);
+  });
+
+  it("shows a mission briefing before starting and checks off the current objective", () => {
+    render(<TimedMission scenario="coffee" />);
+    const ticket = within(screen.getByRole("complementary", { name: "Order ticket" }));
+    expect(ticket.getByText("Sandwich + latte")).toBeVisible();
+    expect(screen.getByRole("timer")).toHaveTextContent("45s limit");
+    fireEvent.click(screen.getByRole("button", { name: "Start mission" }));
+    expect(screen.getByRole("timer")).toHaveTextContent("45s left");
+    expect(ticket.getByText("Order the sandwich and latte")).toHaveAttribute(
+      "aria-current",
+      "step",
+    );
+    const input = screen.getByRole("textbox", { name: "Type your reply" });
+    fireEvent.change(input, { target: { value: "I’d like a sandwich and a latte." } });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    expect(screen.getByText("Whole milk or oat?")).toBeVisible();
+    expect(ticket.getByText("Choose your milk")).toHaveAttribute("aria-current", "step");
   });
 
   it("only saves a green deck review after an actual word match", () => {

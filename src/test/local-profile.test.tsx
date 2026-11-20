@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Route as HomeRoute } from "@/routes/index";
@@ -7,8 +7,13 @@ import { Route as ProfileRoute } from "@/routes/login";
 vi.mock("@tanstack/react-router", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@tanstack/react-router")>()),
   useLocation: () => "/",
-  Link: ({ to, children, "aria-label": label }: { to: string } & ComponentProps<"a">) => (
-    <a href={to} aria-label={label}>
+  Link: ({
+    to,
+    search,
+    children,
+    "aria-label": label,
+  }: { to: string; search?: Record<string, string> } & ComponentProps<"a">) => (
+    <a href={search ? `${to}?${new URLSearchParams(search)}` : to} aria-label={label}>
       {children}
     </a>
   ),
@@ -56,6 +61,24 @@ describe("local profile", () => {
     view.rerender(<Home />);
     expect(screen.getByRole("heading", { name: "Daily speaking practice" })).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "Local profile" })).toHaveLength(1);
+  });
+
+  it("shows direct topic and sound drill links in Home’s library preview", () => {
+    const Home = HomeRoute.options.component!;
+    render(<Home />);
+    const section = within(screen.getByRole("region", { name: "Explore the library" }));
+    expect(section.getByRole("link", { name: "Travel" })).toHaveAttribute(
+      "href",
+      "/practice?topic=travel",
+    );
+    expect(section.getByRole("link", { name: "TH think" })).toHaveAttribute(
+      "href",
+      "/practice?sound=TH",
+    );
+    expect(section.getByRole("link", { name: "Open Sound Lab & Library" })).toHaveAttribute(
+      "href",
+      "/skills",
+    );
   });
 
   it("loads an existing profile without an email", () => {
