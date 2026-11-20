@@ -33,12 +33,12 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/progress")({
   head: () => ({
     meta: [
-      { title: "Your Progress — Speak Sprout" },
+      { title: "Your Progress — SayTempo" },
       {
         name: "description",
         content: "Track weekly practice, phrase progress, and suggested sound drills.",
       },
-      { property: "og:title", content: "Your Progress — Speak Sprout" },
+      { property: "og:title", content: "Your Progress — SayTempo" },
       {
         property: "og:description",
         content: "Weekly activity, practice scores, suggested sound drills and achievements.",

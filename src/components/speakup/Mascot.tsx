@@ -14,7 +14,7 @@ export function Mascot({
   return (
     <img
       src={mood === "cheer" ? cheer : wave}
-      alt="Kiki the parrot, your Speak Sprout coach"
+      alt="Kiki the parrot, your SayTempo coach"
       width={816}
       height={816}
       loading={eager ? "eager" : "lazy"}

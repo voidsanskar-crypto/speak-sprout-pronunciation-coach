@@ -12,7 +12,7 @@ import {
 import { MobileShell } from "@/components/speakup/MobileShell";
 
 export const Route = createFileRoute("/arcade")({
-  head: () => ({ meta: [{ title: "Arcade — Speak Sprout" }] }),
+  head: () => ({ meta: [{ title: "Arcade — SayTempo" }] }),
   component: Arcade,
 });
 

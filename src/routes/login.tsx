@@ -14,7 +14,7 @@ import {
 } from "@/hooks/use-local-profile";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Local profile — Speak Sprout" }] }),
+  head: () => ({ meta: [{ title: "Local profile — SayTempo" }] }),
   component: LocalProfile,
 });
 

@@ -81,10 +81,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Speak Sprout — English Pronunciation Coach" },
+      { title: "SayTempo — English Pronunciation Coach" },
       { name: "description", content: "Practice spoken English with audio examples, recording replay, and word-match feedback." },
       { name: "theme-color", content: "#f7faf2" },
-      { property: "og:title", content: "Speak Sprout — English Pronunciation Coach" },
+      { property: "og:title", content: "SayTempo — English Pronunciation Coach" },
       { property: "og:description", content: "Practice spoken English with audio examples, recording replay, and word-match feedback." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

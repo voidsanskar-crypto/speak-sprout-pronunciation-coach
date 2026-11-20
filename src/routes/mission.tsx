@@ -62,7 +62,7 @@ export const Route = createFileRoute("/mission")({
   head: ({ match }) => ({
     meta: [
       {
-        title: `${match.search.scenario ? timedMissions[match.search.scenario].title : "Pack for the train"} — Speak Sprout`,
+        title: `${match.search.scenario ? timedMissions[match.search.scenario].title : "Pack for the train"} — SayTempo`,
       },
       { name: "description", content: "Give spoken directions and see what Kiki puts in the bag." },
     ],

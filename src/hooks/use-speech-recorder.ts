@@ -93,7 +93,7 @@ export function useSpeechRecorder(
       setError({
         kind: "unsupported",
         message:
-          "Your browser can't recognise speech. Please open Speak Sprout in Chrome, Edge or Safari.",
+          "Your browser can't recognise speech. Please open SayTempo in Chrome, Edge or Safari.",
       });
       return;
     }

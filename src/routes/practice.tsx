@@ -63,13 +63,13 @@ export const Route = createFileRoute("/practice")({
   },
   head: () => ({
     meta: [
-      { title: "Practice — Speak Sprout" },
+      { title: "Practice — SayTempo" },
       {
         name: "description",
         content:
           "Listen to native-style audio, record yourself and get instant word-match feedback.",
       },
-      { property: "og:title", content: "Practice — Speak Sprout" },
+      { property: "og:title", content: "Practice — SayTempo" },
       {
         property: "og:description",
         content: "Listen, speak and see how the browser transcript matches the phrase.",

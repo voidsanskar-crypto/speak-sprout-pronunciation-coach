@@ -63,6 +63,17 @@ describe("local profile", () => {
     expect(screen.getAllByRole("link", { name: "Local profile" })).toHaveLength(1);
   });
 
+  it("opens Kiki’s guide, answers a question, and closes it", () => {
+    const Home = HomeRoute.options.component!;
+    render(<Home />);
+    fireEvent.click(screen.getByRole("button", { name: "Ask Kiki for help" }));
+    const guide = within(screen.getByRole("dialog", { name: "Kiki’s practice guide" }));
+    fireEvent.click(guide.getByRole("button", { name: "What’s in my session?" }));
+    expect(guide.getByText(/We’ll warm up with any due review words/)).toBeVisible();
+    fireEvent.click(guide.getByRole("button", { name: "Close Kiki’s guide" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
   it("shows direct topic and sound drill links in Home’s library preview", () => {
     const Home = HomeRoute.options.component!;
     render(<Home />);

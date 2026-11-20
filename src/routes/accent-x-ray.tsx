@@ -13,7 +13,7 @@ import { PHONEME_IPA, type CoachedSound } from "@/lib/phonemes";
 import type { ScoreResult } from "@/lib/scoring";
 
 export const Route = createFileRoute("/accent-x-ray")({
-  head: () => ({ meta: [{ title: "Accent X-Ray — Speak Sprout" }] }),
+  head: () => ({ meta: [{ title: "Accent X-Ray — SayTempo" }] }),
   component: AccentXRay,
 });
 

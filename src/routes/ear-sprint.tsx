@@ -8,7 +8,7 @@ import { stopSpeaking } from "@/lib/speech";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/ear-sprint")({
-  head: () => ({ meta: [{ title: "Ear Sprint — Speak Sprout" }] }),
+  head: () => ({ meta: [{ title: "Ear Sprint — SayTempo" }] }),
   component: EarSprint,
 });
 

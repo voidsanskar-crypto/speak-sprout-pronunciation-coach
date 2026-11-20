@@ -17,13 +17,13 @@ import { TOPICS } from "@/lib/topics";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Speak Sprout — English Speaking Practice" },
+      { title: "SayTempo — English Speaking Practice" },
       {
         name: "description",
         content:
           "Practice English one phrase at a time with audio examples, voice replay, and word-match feedback.",
       },
-      { property: "og:title", content: "Speak Sprout — English Speaking Practice" },
+      { property: "og:title", content: "SayTempo — English Speaking Practice" },
       {
         property: "og:description",
         content:

@@ -28,7 +28,7 @@ export const Route = createFileRoute("/skills")({
   }),
   head: () => ({
     meta: [
-      { title: "Sound Lab & Library — Speak Sprout" },
+      { title: "Sound Lab & Library — SayTempo" },
       {
         name: "description",
         content: "Browse English practice by topic or difficulty, or focus on a specific sound.",

@@ -19,7 +19,7 @@ type Lookup =
   | { kind: "result"; entries: Entry[] };
 
 export const Route = createFileRoute("/dictionary")({
-  head: () => ({ meta: [{ title: "Pronunciation Dictionary — Speak Sprout" }] }),
+  head: () => ({ meta: [{ title: "Pronunciation Dictionary — SayTempo" }] }),
   component: Dictionary,
 });
 

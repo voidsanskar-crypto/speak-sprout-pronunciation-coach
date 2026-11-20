@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 type Stage = "listen" | "speak" | "done";
 
 export const Route = createFileRoute("/minimal-pairs")({
-  head: () => ({ meta: [{ title: "Minimal Pairs — Speak Sprout" }] }),
+  head: () => ({ meta: [{ title: "Minimal Pairs — SayTempo" }] }),
   component: MinimalPairs,
 });
 

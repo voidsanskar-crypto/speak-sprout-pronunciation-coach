@@ -1,3 +1,4 @@
+import { KikiGuide } from "./KikiGuide";
 import type { ReactNode } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { BarChart3, Flame, Gamepad2, Home, LibraryBig, Sprout, UserRound, Zap } from "lucide-react";
@@ -77,6 +78,7 @@ function TopBar({ full = false }: { full?: boolean }) {
         <Brand compact />
       </div>
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+        <KikiGuide />
         <Link
           to="/progress"
           aria-label={`Progress: ${streak}-day streak, ${xp} XP`}
@@ -114,7 +116,7 @@ function Brand({ compact = false }: { compact?: boolean }) {
       >
         <Sprout aria-hidden="true" className="size-5" />
       </span>
-      Speak Sprout
+      SayTempo
     </Link>
   );
 }

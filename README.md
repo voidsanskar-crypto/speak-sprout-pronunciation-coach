@@ -1,6 +1,6 @@
-# Speak Sprout — English Speaking Coach
+# SayTempo — English Speaking Coach
 
-Speak Sprout is a browser-based English speaking practice app. It combines guided pronunciation drills, a level-aware phrase curriculum, dictionary audio, and AI roleplay conversations.
+SayTempo is a browser-based English speaking practice app. It combines guided pronunciation drills, a level-aware phrase curriculum, dictionary audio, and AI roleplay conversations.
 
 **Live app:** [speak-sprout-pronunciation-coach.vercel.app](https://speak-sprout-pronunciation-coach.vercel.app)  
 **GitHub:** [voidsanskar-crypto/speak-sprout-pronunciation-coach](https://github.com/voidsanskar-crypto/speak-sprout-pronunciation-coach)
@@ -54,7 +54,7 @@ Vercel sets its deployment environment automatically and runs the production bui
 ```text
 src/
   assets/       Mascot art and bundled visual assets
-  components/   Shared UI and Speak Sprout-specific components
+  components/   Shared UI and SayTempo-specific components
   hooks/        Speech capture, progress, translation, and browser hooks
   lib/          Curriculum, scoring, local state, speech, and AI functions
   routes/       Home, practice, assessment, roleplay, dictionary, profile, progress

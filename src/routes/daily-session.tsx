@@ -14,7 +14,7 @@ import { canSpeak, speak, stopSpeaking } from "@/lib/speech";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/daily-session")({
-  head: () => ({ meta: [{ title: "Today’s session — Speak Sprout" }] }),
+  head: () => ({ meta: [{ title: "Today’s session — SayTempo" }] }),
   component: DailySession,
 });
 

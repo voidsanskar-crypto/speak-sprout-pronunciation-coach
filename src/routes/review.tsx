@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { canSpeak, speak, stopSpeaking } from "@/lib/speech";
 
 export const Route = createFileRoute("/review")({
-  head: () => ({ meta: [{ title: "Personal Review Deck — Speak Sprout" }] }),
+  head: () => ({ meta: [{ title: "Personal Review Deck — SayTempo" }] }),
   component: ReviewDeck,
 });
 
