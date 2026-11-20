@@ -30,7 +30,8 @@ export function MobileShell({ children, nav = true }: { children: ReactNode; nav
     return (
       <div className="mx-auto min-h-dvh max-w-xl">
         <TopBar />
-        <main className="px-4 pb-10 pt-5 sm:px-6">{children}</main>
+        <main className="px-4 pb-28 pt-5 sm:px-6">{children}</main>
+        <KikiGuide />
       </div>
     );
   }
@@ -52,11 +53,12 @@ export function MobileShell({ children, nav = true }: { children: ReactNode; nav
         <main
           id="main-content"
           tabIndex={-1}
-          className="mx-auto min-w-0 max-w-2xl px-4 pb-28 pt-5 outline-none sm:px-6 lg:mx-0 lg:max-w-none lg:px-10 lg:pb-12 lg:pt-5"
+          className="mx-auto min-w-0 max-w-2xl px-4 pb-40 pt-5 outline-none sm:px-6 lg:mx-0 lg:max-w-none lg:px-10 lg:pb-32 lg:pt-5"
         >
           {children}
         </main>
       </div>
+      <KikiGuide aboveNavigation />
       <Navigation className="fixed inset-x-0 bottom-0 z-40 mx-auto grid max-w-2xl grid-cols-4 gap-1 rounded-t-3xl border border-border bg-card/95 px-2 pt-2 pb-[max(env(safe-area-inset-bottom),8px)] shadow-card backdrop-blur-lg lg:hidden" />
     </div>
   );
@@ -78,7 +80,6 @@ function TopBar({ full = false }: { full?: boolean }) {
         <Brand compact />
       </div>
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-        <KikiGuide />
         <Link
           to="/progress"
           aria-label={`Progress: ${streak}-day streak, ${xp} XP`}

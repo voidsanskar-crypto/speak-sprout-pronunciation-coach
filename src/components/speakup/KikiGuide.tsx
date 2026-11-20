@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "@tanstack/react-router";
 import { X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import avatar from "@/assets/kiki-guide.png";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
@@ -99,15 +100,28 @@ const guidance: Record<string, Guidance> = {
   ],
 };
 
-export function KikiGuide() {
+export function KikiGuide({ aboveNavigation = false }: { aboveNavigation?: boolean }) {
   const topic = useLocation({
     select: ({ pathname, searchStr }) => {
       const page = pathname.replace(/\/$/, "") || "/";
       const scenario = new URLSearchParams(searchStr).get("scenario");
-      return page === "/mission" && (scenario === "coffee" || scenario === "subway") ? scenario : page;
+      return page === "/mission" && (scenario === "coffee" || scenario === "subway")
+        ? scenario
+        : page;
     },
   });
-  return <GuideBubble key={topic} advice={guidance[topic] ?? guidance["/"]!} />;
+  return (
+    <div
+      className={cn(
+        "pointer-events-none fixed inset-x-0 z-40 mx-auto flex max-w-2xl justify-end px-4 lg:bottom-6 lg:max-w-7xl lg:px-8",
+        aboveNavigation
+          ? "bottom-[calc(4.25rem+max(env(safe-area-inset-bottom),8px))]"
+          : "bottom-[max(env(safe-area-inset-bottom),1rem)]",
+      )}
+    >
+      <GuideBubble key={topic} advice={guidance[topic] ?? guidance["/"]!} />
+    </div>
+  );
 }
 
 function GuideBubble({ advice }: { advice: Guidance }) {
@@ -127,19 +141,21 @@ function GuideBubble({ advice }: { advice: Guidance }) {
           type="button"
           aria-label="Ask Kiki for help"
           title="Ask Kiki"
-          className="group inline-flex min-h-10 min-w-10 items-center justify-center gap-1 rounded-full border border-border bg-primary-soft px-1 text-sm font-bold text-primary sm:pr-3"
+          className="group pointer-events-auto inline-flex items-center rounded-full border border-primary/20 bg-card pl-1 pr-4 font-display font-bold text-primary shadow-card hover:bg-primary-soft focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
         >
           <img
             src={avatar}
             alt=""
-            width="32"
-            height="32"
-            className="size-8 motion-safe:transition-transform motion-safe:group-hover:-rotate-6"
+            width="72"
+            height="72"
+            className="size-16 lg:size-[4.5rem] motion-safe:transition-transform motion-safe:group-hover:-rotate-6"
           />
-          <span className="hidden sm:inline">Ask Kiki</span>
+          <span>Ask Kiki</span>
         </button>
       </PopoverTrigger>
       <PopoverContent
+        side="top"
+        sideOffset={10}
         align="end"
         collisionPadding={12}
         aria-label="Kiki’s practice guide"
