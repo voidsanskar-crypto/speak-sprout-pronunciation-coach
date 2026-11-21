@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import { WordMatchReview } from "@/components/speakup/WordMatchReview";
 import { scoreTranscript } from "@/lib/scoring";
@@ -18,6 +18,7 @@ it("plays the selected IPA sample and shows the matching coaching tip", async ()
   const pause = vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => {});
   try {
     const view = render(<WordMatchReview result={scoreTranscript("think", "sink")} />);
+    await act(() => vi.dynamicImportSettled());
     const theta = await screen.findByRole("button", { name: "Hear sound /θ/" });
     expect(theta).toHaveClass("phoneme-difference");
     expect(screen.getAllByRole("button", { name: "Hear sound /ɪ/" })[0]).not.toHaveClass(

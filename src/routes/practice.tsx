@@ -33,6 +33,7 @@ import { PHONEME_IPA, type CoachedSound } from "@/lib/phonemes";
 import type { Phrase } from "@/lib/phrases";
 import { xpForScore } from "@/lib/progress";
 import { scoreBest, type ScoreResult } from "@/lib/scoring";
+import { preparePracticeCues, playPracticeCue } from "@/lib/practice-cues";
 import { buildQueue } from "@/lib/session";
 import { SOUND_IDS, SOUNDS, type SoundId } from "@/lib/sounds";
 import { canSpeak, speak, stopSpeaking } from "@/lib/speech";
@@ -40,6 +41,7 @@ import { getTopic, isDifficulty, TOPICS, type Difficulty, type TopicId } from "@
 import { cn } from "@/lib/utils";
 
 interface PracticeSearch {
+  mini?: boolean | undefined;
   topic?: TopicId | undefined;
   sound?: SoundId | undefined;
   phone?: CoachedSound | undefined;
@@ -58,7 +60,7 @@ export const Route = createFileRoute("/practice")({
       typeof rawPhone === "string" && Object.hasOwn(PHONEME_IPA, rawPhone)
         ? (rawPhone as CoachedSound)
         : undefined;
-    return { topic, sound, phone, level };
+    return { topic, sound, phone, level, mini: phone && search["mini"] === true ? true : undefined };
   },
   head: () => ({
     meta: [
@@ -83,7 +85,7 @@ export const Route = createFileRoute("/practice")({
 type Stage = "practice" | "feedback" | "summary";
 
 function Practice() {
-  const { topic, sound, phone, level } = Route.useSearch();
+  const { topic, sound, phone, level, mini } = Route.useSearch();
   const progress = useProgress();
   const [queue, setQueue] = useState<Phrase[] | null>(null);
   const [index, setIndex] = useState(0);
@@ -95,7 +97,7 @@ function Practice() {
     let active = true;
     setQueue(null);
     void buildQueue({ topic, sound, phone, level }, getProgressSnapshot()).then((phrases) => {
-      if (active) setQueue(phrases);
+      if (active) setQueue(mini ? phrases.slice(0, 3) : phrases);
     });
     setIndex(0);
     setStage("practice");
@@ -105,7 +107,7 @@ function Practice() {
     return () => {
       active = false;
     };
-  }, [topic, sound, phone, level]);
+  }, [topic, sound, phone, level, mini]);
 
   useEffect(
     () => () => {
@@ -142,6 +144,7 @@ function Practice() {
     (alts: string[], clipUrl?: string) => {
       if (!phrase) return;
       const r = scoreBest(phrase.text, alts);
+      playPracticeCue("complete");
       setResult(r);
       setRecordingUrl(clipUrl ?? null);
       setStage("feedback");
@@ -260,7 +263,11 @@ function PracticeCard({
       window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 440,
     );
     pendingResult.current = { timer, clip };
-  });
+  }, { onReady: () => playPracticeCue("ready") });
+  function startPracticeRecording() {
+    preparePracticeCues();
+    void recorder.start();
+  }
   const [slow, setSlow] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [showTr, setShowTr] = useState(false);
@@ -409,7 +416,7 @@ function PracticeCard({
             error={recorder.error}
             onRetry={() => {
               recorder.clearError();
-              void recorder.start();
+              startPracticeRecording();
             }}
             onDismiss={recorder.clearError}
           />
@@ -439,7 +446,7 @@ function PracticeCard({
       <div className="mt-2 grid w-full grid-cols-[1fr_auto_1fr] items-center">
         <span />
         <div className="flex justify-center">
-          <MicButton status={status} analyser={recorder.analyser} speaking={recorder.speaking} onStart={() => void recorder.start()} onStop={recorder.stop} />
+          <MicButton status={status} analyser={recorder.analyser} speaking={recorder.speaking} onStart={startPracticeRecording} onStop={recorder.stop} />
         </div>
         <div className="flex justify-end">
           <Button

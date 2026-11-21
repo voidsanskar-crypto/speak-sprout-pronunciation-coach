@@ -264,7 +264,7 @@ export function PracticeFeedback({
         </Button>
       </div>
 
-      <WordDetail
+      <WordDetail phrase={phrase.text} recordingUrl={recordingUrl}
         open={selected !== undefined}
         onOpenChange={(open) => !open && setSelectedIndex(null)}
         word={selected?.match ?? null}

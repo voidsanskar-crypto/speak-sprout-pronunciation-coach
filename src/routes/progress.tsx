@@ -9,6 +9,7 @@ import { resetProgress, setTranslationLanguage, useProgress } from "@/hooks/use-
 import { getAchievements } from "@/lib/achievements";
 import { PHRASES } from "@/lib/phrases";
 import {
+  xpEarnedOn,
   currentStreak,
   lastNDays,
   masteredIds,
@@ -102,7 +103,7 @@ function ProgressPage() {
         <StatTile
           icon={<Zap className="fill-sun text-sun" />}
           value={`${progress.xp}`}
-          label="Total XP"
+          label={`Total XP · ${hydrated ? xpEarnedOn(progress, today) : 0} today`}
         />
         <StatTile
           icon={<Star className="fill-success text-success" />}

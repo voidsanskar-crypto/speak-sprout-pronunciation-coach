@@ -35,6 +35,7 @@ type Scene = {
   role: string;
   scenario: string;
   opening?: string;
+  replies?: string[];
   checkpoints: Checkpoint[];
 };
 
@@ -42,6 +43,7 @@ const scenes: Scene[] = [
   {
     title: "Order at a café",
     role: "Barista",
+    replies: ["I'd like a cappuccino, please.", "How much is that?"],
     opening: "Good morning! What would you like today?",
     checkpoints: [
       { label: "Order a drink", expression: /\b(?:latte|coffee|tea|espresso|cappuccino)\b/i },
@@ -53,6 +55,7 @@ const scenes: Scene[] = [
   {
     title: "Check into a hotel",
     role: "Receptionist",
+    replies: ["I have a reservation for tonight.", "What time is breakfast?"],
     opening: "Welcome to the hotel. Do you have a reservation?",
     checkpoints: [
       { label: "Use “reservation”", expression: /\breservations?\b/i },
@@ -68,6 +71,7 @@ const scenes: Scene[] = [
   {
     title: "Meet a recruiter",
     role: "Recruiter",
+    replies: ["I led a small team.", "What would a typical day look like?"],
     opening: "Thanks for coming in. Could you tell me a little about your experience?",
     checkpoints: [
       {
@@ -89,6 +93,7 @@ const scenes: Scene[] = [
   {
     title: "Find a missing suitcase",
     role: "Airport baggage agent",
+    replies: ["My suitcase did not arrive.", "Could you check my baggage tag?"],
     opening: "Hi there. What happened to your luggage?",
     checkpoints: [
       {
@@ -112,6 +117,7 @@ const scenes: Scene[] = [
   {
     title: "Return a purchase",
     role: "Store associate",
+    replies: ["I would like to return this.", "I have my receipt here."],
     opening: "Hi. How can I help you with your purchase today?",
     checkpoints: [
       {
@@ -134,6 +140,7 @@ const scenes: Scene[] = [
   {
     title: "Make weekend plans",
     role: "Friend",
+    replies: ["Are you free on Saturday?", "How about meeting at the park?"],
     opening: "Hey! Are you free this weekend?",
     checkpoints: [
       {
@@ -157,6 +164,7 @@ const scenes: Scene[] = [
   {
     title: "Negotiate a deadline",
     role: "Project teammate",
+    replies: ["Could we move the deadline?", "I can finish the first part today."],
     opening: "How’s the deliverable going? Are we still on track?",
     checkpoints: [
       {
@@ -179,6 +187,7 @@ const scenes: Scene[] = [
   {
     title: "Book an appointment",
     role: "Office receptionist",
+    replies: ["I would like to book an appointment.", "Is Thursday morning available?"],
     opening: "Good morning. How can I help you?",
     checkpoints: [
       {
@@ -201,6 +210,7 @@ const scenes: Scene[] = [
   {
     title: "Ask for directions",
     role: "Visitor information clerk",
+    replies: ["How do I get to the station?", "Can I walk there?"],
     opening: "Hi! Where are you trying to get to?",
     checkpoints: [
       {
@@ -565,6 +575,11 @@ function Dialogue() {
                     onRate={(rate) => setSpeechRates((previous) => [...previous, rate])}
                   />
                 )}
+                <div role="group" aria-label="Suggested replies" className="my-3 flex flex-wrap gap-2">
+                  {(scene.replies ?? ["Could you tell me more?", "Could you explain that again?"]).map((reply) => (
+                    <Button type="button" key={reply} variant="chip" size="sm" disabled={busy || reviewing} onClick={() => { setDraft(reply); setSpokenDraft(null); }}>{reply}</Button>
+                  ))}
+                </div>
                 <Textarea
                   aria-label="Your response"
                   maxLength={1200}

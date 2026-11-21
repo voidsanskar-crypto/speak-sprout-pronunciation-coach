@@ -24,6 +24,7 @@ export interface SpeechRecognitionLike {
   onresult: ((e: SpeechRecognitionEventLike) => void) | null;
   onerror: ((e: { error: string }) => void) | null;
   onend: (() => void) | null;
+  onstart?: (() => void) | null;
   onspeechstart: (() => void) | null;
   onspeechend: (() => void) | null;
 }

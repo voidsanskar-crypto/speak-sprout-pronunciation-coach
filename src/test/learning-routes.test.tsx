@@ -154,6 +154,9 @@ describe("learning routes", () => {
     expect(screen.getByRole("heading", { name: "Create your scenario" })).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: /Return a purchase/ }));
     expect(screen.getByText("Hi. How can I help you with your purchase today?")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "I have my receipt here." }));
+    expect(screen.getByRole("textbox", { name: "Your response" })).toHaveValue("I have my receipt here.");
+    expect(mocks.groqRoleplay).not.toHaveBeenCalled();
     fireEvent.change(screen.getByRole("textbox", { name: "Your response" }), {
       target: { value: "I’d like to return this. It’s broken." },
     });
@@ -185,6 +188,24 @@ describe("learning routes", () => {
     fireEvent.click(screen.getByRole("button", { name: "Send" }));
     expect(screen.getByText("Whole milk or oat?")).toBeVisible();
     expect(ticket.getByText("Choose your milk")).toHaveAttribute("aria-current", "step");
+  });
+
+  it("lets a learner cram an upcoming word without advancing its review date", () => {
+    const original = sampleProgress.reviewDeck;
+    sampleProgress.reviewDeck = [{ word: "ship", due: "2999-01-01", step: 2 }];
+    try {
+      const Deck = ReviewRoute.options.component!;
+      render(<Deck />);
+      fireEvent.click(screen.getByRole("button", { name: /Cram mode/ }));
+      fireEvent.click(screen.getByRole("button", { name: "Reveal word" }));
+      expect(screen.getByText("In a sentence")).toBeVisible();
+      fireEvent.click(screen.getByRole("button", { name: "Mock matching recording" }));
+      fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+      expect(screen.getByText("Cram session complete.")).toBeVisible();
+      expect(mocks.reviewDeckWord).not.toHaveBeenCalled();
+    } finally {
+      sampleProgress.reviewDeck = original;
+    }
   });
 
   it("only saves a green deck review after an actual word match", () => {

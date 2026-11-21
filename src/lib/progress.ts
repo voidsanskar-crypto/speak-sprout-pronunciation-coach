@@ -30,6 +30,7 @@ const REVIEW_INTERVALS = [1, 3, 7] as const;
 export interface ProgressState {
   version: 1;
   xp: number;
+  dailyXp?: { date: string; points: number };
   streak: number;
   bestStreak: number;
   lastActiveDate: string | null;
@@ -40,6 +41,8 @@ export interface ProgressState {
   goalDates: string[];
   translationLanguage: string | null;
   reviewDeck: ReviewCard[];
+  reviewedWords?: string[];
+  reviewContexts?: Record<string, string>;
 }
 
 export const DEFAULT_PROGRESS: ProgressState = {
@@ -68,6 +71,18 @@ export function addDays(key: string, delta: number): string {
   const date = new Date(y, m - 1, d);
   date.setDate(date.getDate() + delta);
   return toDateKey(date);
+}
+
+export function withReviewContext(
+  previous: Record<string, string> | undefined,
+  words: readonly Pick<WordResult, "target" | "similarity">[],
+) {
+  const contexts = { ...previous };
+  if (words.length > 1) {
+    const line = words.map(({ target }) => target).join(" ");
+    for (const word of words) if (word.similarity < 0.7) contexts[word.target] = line;
+  }
+  return contexts;
 }
 
 export function queueTroubleWords(
@@ -147,12 +162,22 @@ export function masteredIds(state: ProgressState): string[] {
     .map(([id]) => id);
 }
 
-export function applyAttempt(
-  state: ProgressState,
-  input: { phraseId: string; score: number; words: Pick<WordResult, "target" | "similarity">[] },
-  now: Date,
-): ProgressState {
-  const today = toDateKey(now);
+export function xpEarnedOn(state: ProgressState, date: string) {
+  if (state.dailyXp?.date === date) return state.dailyXp.points;
+  return state.attempts
+    .filter((attempt) => attempt.date === date)
+    .reduce((points, attempt) => points + xpForScore(attempt.score), 0);
+}
+
+export function earnXp(state: ProgressState, points: number, date: string) {
+  return {
+    xp: state.xp + points,
+    dailyXp: { date, points: xpEarnedOn(state, date) + points },
+    ...activityStreak(state, date),
+  };
+}
+
+export function activityStreak(state: ProgressState, today: string) {
   let streak = state.streak;
   if (state.lastActiveDate === today) {
     streak = Math.max(1, streak);
@@ -162,6 +187,15 @@ export function applyAttempt(
     streak = 1;
   }
 
+  return { streak, bestStreak: Math.max(state.bestStreak, streak), lastActiveDate: today };
+}
+
+export function applyAttempt(
+  state: ProgressState,
+  input: { phraseId: string; score: number; words: Pick<WordResult, "target" | "similarity">[] },
+  now: Date,
+): ProgressState {
+  const today = toDateKey(now);
   const sounds = { ...state.sounds };
   for (const w of input.words) {
     for (const s of detectSounds(w.target)) {
@@ -183,13 +217,11 @@ export function applyAttempt(
 
   const next: ProgressState = {
     ...state,
-    xp: state.xp + xpForScore(input.score),
-    streak,
-    bestStreak: Math.max(state.bestStreak, streak),
-    lastActiveDate: today,
+    ...earnXp(state, xpForScore(input.score), today),
     attempts,
     best,
     sounds,
+    reviewContexts: withReviewContext(state.reviewContexts, input.words),
     reviewDeck: queueTroubleWords(state.reviewDeck, input.words, today),
   };
   if (phrasesDoneOn(next, today) >= DAILY_GOAL && !next.goalDates.includes(today)) {

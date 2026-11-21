@@ -95,6 +95,9 @@ function PackingMission() {
   const correctCount = packingItemIds.filter((item) =>
     placedCorrectly(bag, item, packingList),
   ).length;
+  const hintItem = pendingItem || focusItem || packingItemIds.find((item) => !placedCorrectly(bag, item, packingList));
+  const hint = hintItem ? `Put the ${PACKING_ITEMS[hintItem].label.toLowerCase()} in the ${BAG_POCKETS[packingList[hintItem]].label.toLowerCase()}.` : "";
+  const [hintOpen, setHintOpen] = useState(false);
   const complete = correctCount === packingItemIds.length;
 
   function giveInstruction(instruction: string, spoken = false) {
@@ -375,6 +378,8 @@ function PackingMission() {
                     </p>
                   </div>
                 </div>
+                <Button variant="soft" size="sm" disabled={micActive} onClick={() => { setHintOpen(true); speak(hint, { slow: true }); }}>Hear the conductor’s hint</Button>
+                {hintOpen && <p className="my-2 text-sm">{hint}</p>}
                 {recorder.error && (
                   <div className="mb-3">
                     <MicHelp

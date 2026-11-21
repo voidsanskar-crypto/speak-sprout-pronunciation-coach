@@ -7,7 +7,8 @@ import { MobileShell } from "@/components/speakup/MobileShell";
 import { Button } from "@/components/ui/button";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { reviewDeckWord, useProgress } from "@/hooks/use-progress";
-import type { ScoreResult } from "@/lib/scoring";
+import { PHRASES, PHRASE_BY_ID } from "@/lib/phrases";
+import { tokenize, type ScoreResult } from "@/lib/scoring";
 import { toDateKey } from "@/lib/progress";
 import { cn } from "@/lib/utils";
 import { canSpeak, speak, stopSpeaking } from "@/lib/speech";
@@ -18,7 +19,18 @@ export const Route = createFileRoute("/review")({
 });
 
 function ReviewDeck() {
-  const { reviewDeck } = useProgress();
+  const { reviewDeck, attempts, reviewedWords = [], reviewContexts = {} } = useProgress();
+  const [cram, setCram] = useState<string[]>([]);
+  const pastTrouble = [...new Set([...reviewDeck.map((card) => card.word), ...reviewedWords])];
+  const past = pastTrouble.length
+    ? pastTrouble
+    : [
+        ...new Set(
+          [...new Set(attempts.map(({ phraseId }) => phraseId))].flatMap((id) =>
+            tokenize(PHRASE_BY_ID[id]?.text ?? ""),
+          ),
+        ),
+      ];
   const hydrated = useHydrated();
   const today = hydrated ? toDateKey(new Date()) : "";
   const ordered = [...reviewDeck].sort(
@@ -26,7 +38,13 @@ function ReviewDeck() {
   );
   const due = ordered.filter((card) => card.due <= today);
   const upcoming = ordered.filter((card) => card.due > today);
-  const active = due[0];
+  const active = cram[0] ? { word: cram[0] } : due[0];
+  const remaining = cram.length || due.length;
+  const example =
+    active &&
+    ((Object.hasOwn(reviewContexts, active.word) && reviewContexts[active.word]) ||
+      PHRASES.find((phrase) => tokenize(phrase.text).includes(active.word))?.text ||
+      `What does “${active.word}” mean?`);
   const [revealedWord, setRevealedWord] = useState<string | null>(null);
   const [reviewResult, setReviewResult] = useState<ScoreResult | null>(null);
   const [feedback, setFeedback] = useState("");
@@ -38,10 +56,19 @@ function ReviewDeck() {
     if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       setDeparting({ word, remembered });
     }
-    reviewDeckWord(word, remembered);
+    if (cram.length) setCram((words) => words.slice(1));
+    else reviewDeckWord(word, remembered);
     setRevealedWord(null);
     setReviewResult(null);
-    setFeedback(remembered ? "Review saved." : "You’ll see that word again tomorrow.");
+    setFeedback(
+      cram.length
+        ? cram.length === 1
+          ? "Cram session complete."
+          : "Next practice word."
+        : remembered
+          ? "Review saved."
+          : "You’ll see that word again tomorrow.",
+    );
   }
 
   return (
@@ -61,23 +88,24 @@ function ReviewDeck() {
         </header>
 
         <section className="relative mt-5 isolate overflow-hidden rounded-[1.5rem] border border-border bg-card p-4 sm:p-6">
-          <h2 className="font-display text-xl font-semibold">Due today</h2>
+          <h2 className="font-display text-xl font-semibold">
+            {cram.length ? "Cram mode" : "Due today"}
+          </h2>
           {active ? (
             <>
               <p className="mt-1 text-sm font-bold text-primary">
-                {due.length} {due.length === 1 ? "word" : "words"} to review
+                {remaining} {remaining === 1 ? "word" : "words"} to review
               </p>
-              <div
-                className="review-stack relative isolate mb-4 mt-6"
-                data-layered={due.length > 1}
-              >
+              <div className="review-stack relative isolate mb-4 mt-6" data-layered={remaining > 1}>
                 <div
                   key={active.word}
                   className="relative space-y-3 rounded-2xl border border-primary/25 bg-primary-soft p-4 shadow-card"
                 >
                   <p className="text-sm font-semibold">
-                    Listen first, then reveal the word and record yourself. Three green reviews in a
-                    row clear the card.
+                    Listen first, then reveal the word and record yourself.{" "}
+                    {cram.length
+                      ? "Extra practice keeps your review dates intact."
+                      : "Three green reviews in a row clear the card."}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     <Button
@@ -107,6 +135,9 @@ function ReviewDeck() {
                   </div>
                   {revealedWord === active.word && (
                     <>
+                      <p lang="en" className="text-sm">
+                        <strong>In a sentence</strong> · {example}
+                      </p>
                       <SpeechPrompt
                         key={active.word}
                         text={active.word}
@@ -115,9 +146,11 @@ function ReviewDeck() {
                       {reviewResult && (
                         <>
                           <p role="status" className="text-sm font-bold">
-                            {reviewResult.words[0]?.status === "correct"
-                              ? "Green match. Save this review to continue your streak."
-                              : "The word didn’t match. You can retry now or review it again tomorrow."}
+                            {cram.length
+                              ? "Practice attempt complete."
+                              : reviewResult.words[0]?.status === "correct"
+                                ? "Green match. Save this review to continue your streak."
+                                : "The word didn’t match. You can retry now or review it again tomorrow."}
                           </p>
                           <WordMatchReview result={reviewResult} />
                           <Button
@@ -132,9 +165,11 @@ function ReviewDeck() {
                             ) : (
                               <RotateCcw aria-hidden="true" />
                             )}
-                            {reviewResult.words[0]?.status === "correct"
-                              ? "Save green review"
-                              : "Review tomorrow"}
+                            {cram.length
+                              ? "Continue"
+                              : reviewResult.words[0]?.status === "correct"
+                                ? "Save green review"
+                                : "Review tomorrow"}
                           </Button>
                         </>
                       )}
@@ -150,6 +185,24 @@ function ReviewDeck() {
                   ? "You’re caught up for today."
                   : "Your deck is empty. Words you miss during speaking practice will be due the next day."}
               </p>
+              {past.length > 0 && (
+                <Button
+                  variant="hero"
+                  className="mr-2 mt-4"
+                  onClick={() => {
+                    const pool = [...past];
+                    const picks: string[] = [];
+                    while (pool.length && picks.length < 5) {
+                      picks.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]!);
+                    }
+                    setCram(picks);
+                    setFeedback("");
+                  }}
+                >
+                  Cram mode · Practice {Math.min(5, past.length)}{" "}
+                  {past.length === 1 ? "word" : "words"}
+                </Button>
+              )}
               <Button asChild variant="soft" className="mt-4">
                 <Link to="/practice">Go to practice</Link>
               </Button>

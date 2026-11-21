@@ -20,7 +20,7 @@ function isAndroid() {
 
 export function useSpeechRecorder(
   onResult: (alternatives: string[], recordingUrl?: string, timing?: SpeechTiming) => void,
-  { captureAudio = true }: { captureAudio?: boolean } = {},
+  { captureAudio = true, onReady }: { captureAudio?: boolean; onReady?: () => void } = {},
 ) {
   const [status, setStatus] = useState<RecorderStatus>("idle");
   const [interim, setInterim] = useState("");
@@ -168,6 +168,7 @@ export function useSpeechRecorder(
     rec.interimResults = true;
     rec.maxAlternatives = 3;
     recRef.current = rec;
+    rec.onstart = () => { if (recRef.current === rec) onReady?.(); };
 
     let finals: string[] = [];
     let latest = "";
@@ -275,7 +276,7 @@ export function useSpeechRecorder(
       setStatus("idle");
       setError({ kind: "other", message: "Couldn't start listening. Please try again." });
     }
-  }, [status, cleanupAudio, captureAudio]);
+  }, [status, cleanupAudio, captureAudio, onReady]);
 
   const stop = useCallback(() => {
     recRef.current?.stop();

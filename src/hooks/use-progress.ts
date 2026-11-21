@@ -1,9 +1,11 @@
 import { useSyncExternalStore } from "react";
 import {
+  earnXp,
   addPlanWords,
   applyAttempt,
   DEFAULT_PROGRESS,
   queueTroubleWords,
+  withReviewContext,
   reviewWord,
   toDateKey,
   type ProgressState,
@@ -70,14 +72,16 @@ export function recordAttempt(input: { phraseId: string; score: number; words: W
 export function recordTroubleWords(words: WordResult[]) {
   const state = read();
   const reviewDeck = queueTroubleWords(state.reviewDeck, words, toDateKey(new Date()));
-  if (reviewDeck !== state.reviewDeck) write({ ...state, reviewDeck });
+  if (reviewDeck !== state.reviewDeck) write({ ...state, reviewDeck, reviewContexts: withReviewContext(state.reviewContexts, words) });
   recordSoundEvidence(words);
 }
 
 export function reviewDeckWord(word: string, remembered: boolean) {
   const state = read();
   const reviewDeck = reviewWord(state.reviewDeck, word, remembered, toDateKey(new Date()));
-  if (reviewDeck !== state.reviewDeck) write({ ...state, reviewDeck });
+  if (reviewDeck !== state.reviewDeck) {
+    write({ ...state, reviewDeck, reviewedWords: [...new Set([...(state.reviewedWords ?? []), word])] });
+  }
 }
 
 export function setTranslationLanguage(language: string | null) {
@@ -91,7 +95,7 @@ export function resetProgress() {
 
 export function awardXp(amount: number) {
   const state = read();
-  write({ ...state, xp: state.xp + amount });
+  if (amount > 0) write({ ...state, ...earnXp(state, amount, toDateKey(new Date())) });
 }
 
 export function recordSoundEvidence(words: WordResult[]) {

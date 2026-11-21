@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { MouthPosition } from "@/components/speakup/MouthPosition";
 import { AudioLines, Volume2 } from "lucide-react";
 import { useState } from "react";
 import { MobileShell } from "@/components/speakup/MobileShell";
@@ -8,7 +9,12 @@ import { Button } from "@/components/ui/button";
 import { useLocalProfile } from "@/hooks/use-local-profile";
 import { usePhonemeAudio } from "@/hooks/use-phoneme-audio";
 import { recordTroubleWords } from "@/hooks/use-progress";
-import { ACCENT_DRILLS } from "@/lib/accent-drills";
+import {
+  ACCENT_DRILLS,
+  NATIVE_LANGUAGES,
+  isNativeLanguage,
+  type NativeLanguage,
+} from "@/lib/accent-drills";
 import { PHONEME_IPA, type CoachedSound } from "@/lib/phonemes";
 import type { ScoreResult } from "@/lib/scoring";
 
@@ -18,25 +24,31 @@ export const Route = createFileRoute("/accent-x-ray")({
 });
 
 function AccentXRay() {
-  const language = useLocalProfile()?.nativeLanguage;
+  const profileLanguage = useLocalProfile()?.nativeLanguage;
+  const [preview, setPreview] = useState<NativeLanguage | null>(null);
+  const language = preview ?? profileLanguage ?? NATIVE_LANGUAGES[0]!;
   return (
     <MobileShell>
       <div className="mx-auto max-w-2xl">
         <h1 className="flex items-center gap-2 font-display text-3xl font-bold">
           <AudioLines aria-hidden="true" className="text-primary" /> Accent X-Ray
         </h1>
-        {language ? (
-          <MuscleDrill key={language} drills={ACCENT_DRILLS[language]} language={language} />
-        ) : (
-          <section className="mt-4 rounded-2xl border border-border bg-card p-5">
-            <p className="text-sm text-muted-foreground">
-              Set your first language to get a suggested mouth-position drill.
-            </p>
-            <Button asChild variant="hero" className="mt-3">
-              <Link to="/login">Set my first language</Link>
-            </Button>
-          </section>
-        )}
+        <label className="mt-4 block text-sm font-bold" htmlFor="accent-language">
+          Explore drills by first language
+        </label>
+        <select
+          id="accent-language"
+          className="mt-1 rounded-xl border border-input bg-card p-2"
+          value={language}
+          onChange={(event) => {
+            if (isNativeLanguage(event.target.value)) setPreview(event.target.value);
+          }}
+        >
+          {NATIVE_LANGUAGES.map((name) => (
+            <option key={name}>{name}</option>
+          ))}
+        </select>
+        <MuscleDrill key={language} drills={ACCENT_DRILLS[language]} language={language} />
       </div>
     </MobileShell>
   );
@@ -91,6 +103,7 @@ function MuscleDrill({
             <Volume2 aria-hidden="true" /> /{PHONEME_IPA[drill.phone]}/
           </Button>
         </div>
+        <MouthPosition phone={drill.phone} />
         <p className="mt-1 text-sm">{drill.cue}</p>
         {sample.audioError && (
           <p className="mt-2 text-xs text-danger" role="status">

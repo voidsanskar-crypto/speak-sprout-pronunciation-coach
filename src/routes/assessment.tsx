@@ -23,6 +23,7 @@ export const Route = createFileRoute("/assessment")({ component: Assessment });
 function Assessment() {
   const [index, setIndex] = useState(0);
   const [takes, setTakes] = useState<{ score: ScoreResult; speakingMs: number | null }[]>([]);
+  const [shareMessage, setShareMessage] = useState("");
   const [planReady, setPlanReady] = useState(false);
   const [last, setLast] = useState<ScoreResult | null>(null);
   const [result, setResult] = useState<AssessmentResult | null>(null);
@@ -140,6 +141,46 @@ function Assessment() {
           </section>
           <div className="mt-6 grid gap-3">
             <Button
+              variant="soft"
+              disabled={dictionary === undefined}
+              onClick={async () => {
+                const percent = (value: number | null) =>
+                  value === null ? "unavailable" : `${value}%`;
+                const summary = [
+                  "SayTempo · Speaking check",
+                  new Date(result.completedAt).toLocaleDateString(),
+                  `Suggested practice level: ${result.level}`,
+                  `Transcript word match: ${result.score}%`,
+                  `Dictionary matches · vowels ${percent(report.vowels)}, consonants ${percent(report.consonants)}`,
+                  `Pace: ${report.pacing === null ? "unavailable" : report.pacing + " words/min"}`,
+                  ...report.top
+                    .slice(0, 3)
+                    .map(({ phone }) => `Focus sound: /${PHONEME_IPA[phone]}/`),
+                ].join("\n");
+                try {
+                  await navigator.clipboard.writeText(summary);
+                  setShareMessage("Report copied.");
+                } catch {
+                  const url = URL.createObjectURL(
+                    new Blob([summary], { type: "text/plain;charset=utf-8" }),
+                  );
+                  const link = document.createElement("a");
+                  link.href = url;
+                  link.download = "saytempo-speaking-check.txt";
+                  link.click();
+                  setTimeout(() => URL.revokeObjectURL(url), 1000);
+                  setShareMessage("Report downloaded.");
+                }
+              }}
+            >
+              Copy my report
+            </Button>
+            {shareMessage && (
+              <p role="status" className="text-sm">
+                {shareMessage}
+              </p>
+            )}
+            <Button
               variant="hero"
               onClick={() => {
                 addTrainingWords(report.reviewWords);
@@ -151,7 +192,11 @@ function Assessment() {
                 );
                 setPlanReady(true);
               }}
-              disabled={dictionary === undefined || planReady || (!report.reviewWords.length && !report.top.length)}
+              disabled={
+                dictionary === undefined ||
+                planReady ||
+                (!report.reviewWords.length && !report.top.length)
+              }
             >
               Generate my custom training plan
             </Button>
@@ -171,6 +216,7 @@ function Assessment() {
               onClick={() => {
                 setIndex(0);
                 setTakes([]);
+                setShareMessage("");
                 setPlanReady(false);
                 setLast(null);
                 setResult(null);

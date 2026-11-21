@@ -82,8 +82,9 @@ export function SoundChart() {
   const { phonemeMatches } = useProgress();
   const language = useLocalProfile()?.nativeLanguage;
   const [query, setQuery] = useState("");
+  const [mastery, setMastery] = useState("All");
   const [group, setGroup] = useState<Group>("Consonants");
-  const [selected, setSelected] = useState<CoachedSound>("TH");
+  const [chosen, setSelected] = useState<CoachedSound>("TH");
   const { play, stop, audioError } = usePhonemeAudio();
   const [listeningTo, setListeningTo] = useState<"word" | "sound">("word");
   const [wordError, setWordError] = useState(false);
@@ -106,15 +107,30 @@ export function SoundChart() {
     .replace(/^\/+|\/+$/g, "");
   const results = groups.flatMap(({ label, phones }) => {
     if (!term && label !== group) return [];
-    const matches = (Object.keys(phones) as CoachedSound[]).filter(
-      (code) =>
-        !term ||
-        [code.toLowerCase(), PHONEME_IPA[code], examples[code], label.toLowerCase()].some((value) =>
-          value.includes(term),
-        ),
-    );
+    const matches = (Object.keys(phones) as CoachedSound[])
+      .filter((code) => {
+        const score = soundAverage(phonemeMatches?.[code]);
+        const status =
+          score === null
+            ? "Unpracticed"
+            : score >= 85
+              ? "Mastered"
+              : score >= 70
+                ? "Improving"
+                : "Needs practice";
+        return mastery === "All" || status === mastery;
+      })
+      .filter(
+        (code) =>
+          !term ||
+          [code.toLowerCase(), PHONEME_IPA[code], examples[code], label.toLowerCase()].some(
+            (value) => value.includes(term),
+          ),
+      );
     return matches.length ? [{ label, matches }] : [];
   });
+  const visible = results.flatMap(({ matches }) => matches);
+  const selected = visible.includes(chosen) ? chosen : (visible[0] ?? chosen);
   const selectedScore = soundAverage(phonemeMatches?.[selected]);
   const pinned = language ? ACCENT_DRILLS[language].map(({ phone }) => phone) : [];
 
@@ -141,7 +157,12 @@ export function SoundChart() {
               variant="soft"
               size="sm"
               type="button"
-              onClick={() => hearWord(phone)}
+              onClick={() => {
+                setGroup(groups.find(({ phones }) => Object.hasOwn(phones, phone))!.label);
+                setQuery("");
+                setMastery("All");
+                hearWord(phone);
+              }}
             >
               /{PHONEME_IPA[phone]}/
             </Button>
@@ -182,46 +203,65 @@ export function SoundChart() {
           ))}
         </div>
       )}
-      <section
-        aria-label="Selected sound"
-        className="clay-card mt-4 rounded-2xl bg-primary-soft p-3.5 sm:p-4"
+      <div
+        role="group"
+        aria-label="Filter by word-match history"
+        className="mt-3 flex flex-wrap gap-2"
       >
-        <div aria-live="polite">
-          <h3 className="font-display text-lg font-bold">
-            /{PHONEME_IPA[selected]}/{" "}
-            <span className="text-sm font-medium">as in {examples[selected]}</span>
-          </h3>
-          <p className="mt-1 text-sm">{SOUND_COACHING[selected]}</p>
-        </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Button size="sm" variant="soft" type="button" onClick={() => hearWord(selected)}>
-            <Volume2 aria-hidden="true" /> Hear word: {examples[selected]}
+        {["All", "Needs practice", "Improving", "Mastered", "Unpracticed"].map((label) => (
+          <Button
+            key={label}
+            size="sm"
+            variant={mastery === label ? "hero" : "soft"}
+            aria-pressed={mastery === label}
+            onClick={() => setMastery(label)}
+          >
+            {label}
           </Button>
-          <Button size="sm" variant="soft" type="button" onClick={() => hearWord(selected, true)}>
-            Hear word slowly
-          </Button>
-          <Button size="sm" variant="soft" type="button" onClick={hearSound}>
-            Hear /{PHONEME_IPA[selected]}/ alone
-          </Button>
-        </div>
-        <p className="mt-2 text-xs font-bold">
-          {selectedScore === null
-            ? "No word-match history yet"
-            : `${scoreLabel(selectedScore)} · ${selectedScore}% word match`}
-        </p>
-        <Button asChild variant="hero" size="sm" className="mt-3">
-          <Link to="/practice" search={{ phone: selected }}>
-            Practice /{PHONEME_IPA[selected]}/
-          </Link>
-        </Button>
-        {(listeningTo === "sound" ? audioError : wordError) && (
-          <p role="status" className="mt-2 text-xs text-danger">
-            {listeningTo === "sound"
-              ? "Sound sample unavailable. Try hearing the full word."
-              : "Word audio unavailable in this browser. Try the isolated sound."}
+        ))}
+      </div>
+      {visible.length > 0 && (
+        <section
+          aria-label="Selected sound"
+          className="clay-card mt-4 rounded-2xl bg-primary-soft p-3.5 sm:p-4"
+        >
+          <div aria-live="polite">
+            <h3 className="font-display text-lg font-bold">
+              /{PHONEME_IPA[selected]}/{" "}
+              <span className="text-sm font-medium">as in {examples[selected]}</span>
+            </h3>
+            <p className="mt-1 text-sm">{SOUND_COACHING[selected]}</p>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button size="sm" variant="soft" type="button" onClick={() => hearWord(selected)}>
+              <Volume2 aria-hidden="true" /> Hear word: {examples[selected]}
+            </Button>
+            <Button size="sm" variant="soft" type="button" onClick={() => hearWord(selected, true)}>
+              Hear word slowly
+            </Button>
+            <Button size="sm" variant="soft" type="button" onClick={hearSound}>
+              Hear /{PHONEME_IPA[selected]}/ alone
+            </Button>
+          </div>
+          <p className="mt-2 text-xs font-bold">
+            {selectedScore === null
+              ? "No word-match history yet"
+              : `${scoreLabel(selectedScore)} · ${selectedScore}% word match`}
           </p>
-        )}
-      </section>
+          <Button asChild variant="hero" size="sm" className="mt-3">
+            <Link to="/practice" search={{ phone: selected, mini: true }}>
+              Drill /{PHONEME_IPA[selected]}/ · 3 phrases
+            </Link>
+          </Button>
+          {(listeningTo === "sound" ? audioError : wordError) && (
+            <p role="status" className="mt-2 text-xs text-danger">
+              {listeningTo === "sound"
+                ? "Sound sample unavailable. Try hearing the full word."
+                : "Word audio unavailable in this browser. Try the isolated sound."}
+            </p>
+          )}
+        </section>
+      )}
       {results.length ? (
         results.map(({ label, matches }) => (
           <div key={label} className="mt-4">
@@ -276,7 +316,7 @@ export function SoundChart() {
         ))
       ) : (
         <p role="status" className="mt-4 text-sm text-muted-foreground">
-          No sound matches that search.
+          No sounds match these filters. Try another group or choose All.
         </p>
       )}
     </section>
